@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TokMan Gateway</title>
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+  <div class="window-container">
+    <!-- Top Window Title & Global Status Bar -->
+    <header class="window-header">
+      <div class="window-title-group">
+        <div class="window-logo">T</div>
+        <div class="window-title">TokMan</div>
+        <div class="window-subtitle">AI Gateway Mesh (Local Hub)</div>
+      </div>
+      <div class="top-metrics-bar">
+        <div class="metric-pill">
+          <span class="status-indicator"></span>
+          <span id="gateway-status">ONLINE</span>
+        </div>
+        <div class="metric-pill">
+          <span>PORT:</span>
+          <strong>:8000</strong>
+        </div>
+        <div class="metric-pill">
+          <span>UPTIME:</span>
+          <strong id="topbar-uptime">00:00:00</strong>
+        </div>
+        <div class="metric-pill">
+          <span>RAM:</span>
+          <strong id="topbar-ram">-- MB</strong>
+        </div>
+        <div class="metric-pill">
+          <span>ROM/DISK:</span>
+          <strong id="topbar-rom">-- KB</strong>
+        </div>
+        <div class="metric-pill">
+          <span>CACHE:</span>
+          <strong id="topbar-cache">0</strong>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace Split View -->
+    <div class="window-body">
+      <!-- Left Sidebar Navigation Rail -->
+      <aside class="app-sidebar">
+        <div class="nav-label">Gateway Mesh</div>
+        <div class="nav-item active" data-tab="tab-dashboard">
+          <span class="nav-icon">📊</span>
+          <span>Overview</span>
+        </div>
+        <div class="nav-item" data-tab="tab-console">
+          <span class="nav-icon">⚡</span>
+          <span>API Console</span>
+        </div>
+        <div class="nav-item" data-tab="tab-traffic">
+          <span class="nav-icon">📝</span>
+          <span>Traffic & Spend Logs</span>
+        </div>
+        
+        <div class="nav-label" style="margin-top: 12px;">System</div>
+        <div class="nav-item" data-tab="tab-settings">
+          <span class="nav-icon">⚙️</span>
+          <span>Configuration</span>
+        </div>
+
+        <div class="sidebar-footer">
+          <div>TokMan v1.0.0 (Native)</div>
+          <div style="color: var(--text-dim); margin-top: 2px;">Wails v2 + Go Gateway</div>
+        </div>
+      </aside>
+
+      <!-- Main Content Viewport -->
+      <main class="app-viewport">
+        <!-- Tab 1: Dashboard Overview -->
+        <section id="tab-dashboard" class="view-section active">
+          <div class="section-header">
+            <div>
+              <div class="section-title">System Overview</div>
+              <div class="section-desc">Real-time local node telemetry and active capability routing</div>
+            </div>
+            <button class="native-btn" id="btn-refresh-stats">Refresh</button>
+          </div>
+
+          <div class="grid-cards">
+            <div class="native-card">
+              <div class="card-title">Live Uptime</div>
+              <div class="card-value" id="card-uptime">00:00:00</div>
+              <div class="card-subtext">Continuous 1s tick</div>
+            </div>
+
+            <div class="native-card">
+              <div class="card-title">RAM Utilization</div>
+              <div class="card-value" id="card-ram">-- MB</div>
+              <div class="card-subtext" id="card-ram-sub">Host RAM: -- / -- GB</div>
+            </div>
+
+            <div class="native-card">
+              <div class="card-title">ROM / Storage</div>
+              <div class="card-value" id="card-rom">-- KB</div>
+              <div class="card-subtext" id="card-rom-sub">data/tokman.db | -- GB Free</div>
+            </div>
+
+            <div class="native-card">
+              <div class="card-title">In-Memory LRU Cache</div>
+              <div class="card-value" id="card-cache">0 entries</div>
+              <div class="card-subtext">Sub-1ms response resolution</div>
+            </div>
+          </div>
+
+          <!-- Active Pools Table -->
+          <div class="section-header" style="margin-top: 24px;">
+            <div class="section-title">Active Capability Pool Matrix</div>
+          </div>
+          <div class="table-container">
+            <table class="native-table">
+              <thead>
+                <tr>
+                  <th>Capability Pool</th>
+                  <th>Upstream Provider & Model</th>
+                  <th>Protocol</th>
+                  <th>Priority Tier</th>
+                  <th>Health Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong style="font-family: var(--font-mono); color: var(--accent-blue);">pool/general</strong></td>
+                  <td>groq/llama-3.3-70b-versatile</td>
+                  <td>OpenAI HTTP</td>
+                  <td><span class="tag blue">P0 (Interactive)</span></td>
+                  <td><span class="tag green">ACTIVE</span></td>
+                </tr>
+                <tr>
+                  <td><strong style="font-family: var(--font-mono); color: var(--accent-blue);">pool/deep-reasoning</strong></td>
+                  <td>groq/deepseek-r1-distill-llama-70b</td>
+                  <td>OpenAI HTTP</td>
+                  <td><span class="tag amber">P2 (Reasoning)</span></td>
+                  <td><span class="tag green">ACTIVE</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Tab 2: API Console / Playground -->
+        <section id="tab-console" class="view-section">
+          <div class="section-header">
+            <div>
+              <div class="section-title">API Request Console</div>
+              <div class="section-desc">Interactive OpenAI-compatible proxy tester (:8000/v1/chat/completions)</div>
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);" id="console-latency-badge"></div>
+          </div>
+
+          <div class="split-pane">
+            <!-- Left Pane: Request Composer -->
+            <div class="pane">
+              <div class="pane-header">
+                <span>Request Inspector</span>
+                <span class="tag blue">POST /v1/chat/completions</span>
+              </div>
+              <div class="pane-body">
+                <div class="form-group">
+                  <label for="console-pool-select">Target Model Pool</label>
+                  <select id="console-pool-select">
+                    <option value="pool/general">pool/general (Groq Llama 3.3 70B)</option>
+                    <option value="pool/deep-reasoning">pool/deep-reasoning (Groq DeepSeek R1)</option>
+                  </select>
+                </div>
+
+                <div class="form-group" style="flex: 1;">
+                  <label for="console-prompt-input">User Prompt</label>
+                  <textarea id="console-prompt-input" style="height: 100%; min-height: 140px;">Say "TokMan gateway online."</textarea>
+                </div>
+
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                  <button type="button" class="native-btn" id="btn-clear-output">Clear</button>
+                  <button type="button" class="native-btn primary" id="btn-send-prompt">
+                    <span>Send Request</span>
+                    <span id="console-spinner" style="display: none;">...</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Pane: Response Inspector -->
+            <div class="pane">
+              <div class="pane-header">
+                <span>Response Inspector</span>
+                <span id="response-status-badge" class="tag green">READY</span>
+              </div>
+              <div class="pane-body" style="display: flex; flex-direction: column;">
+                <div id="console-response-output" class="code-output selectable" style="flex: 1;">Ready for request submission. Select a capability pool and click "Send Request".</div>
+                <div id="console-token-audit" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 11px;">
+                  <span class="tag blue" id="audit-prompt-tokens">Prompt: --</span>
+                  <span class="tag blue" id="audit-completion-tokens">Completion: --</span>
+                  <span class="tag green" id="audit-total-tokens">Total: --</span>
+                  <span class="tag amber">Cost: $0.0000 (Free Tier)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 3: Traffic & Spend Logs -->
+        <section id="tab-traffic" class="view-section">
+          <div class="section-header">
+            <div>
+              <div class="section-title">Traffic & Spend Audit Trail</div>
+              <div class="section-desc">Persistent transaction records stored in embedded SQLite (`data/tokman.db`)</div>
+            </div>
+            <button class="native-btn" id="btn-refresh-logs">Reload Logs</button>
+          </div>
+
+          <div class="table-container">
+            <table class="native-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Timestamp</th>
+                  <th>Capability Pool</th>
+                  <th>Prompt Tokens</th>
+                  <th>Completion Tokens</th>
+                  <th>Total Tokens</th>
+                  <th>Latency</th>
+                  <th>Cache State</th>
+                </tr>
+              </thead>
+              <tbody id="traffic-table-body">
+                <tr>
+                  <td colspan="8" style="text-align: center; color: var(--text-dim); padding: 24px;">No completion transactions recorded yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Tab 4: Configuration Settings -->
+        <section id="tab-settings" class="view-section">
+          <div class="section-header">
+            <div>
+              <div class="section-title">Gateway Configuration</div>
+              <div class="section-desc">Upstream provider credentials and runtime flags</div>
+            </div>
+          </div>
+
+          <div class="pane" style="max-width: 600px;">
+            <div class="pane-header">Upstream API Keys</div>
+            <div class="pane-body">
+              <div class="form-group">
+                <label for="settings-groq-key">Groq API Key</label>
+                <input type="password" id="settings-groq-key" placeholder="gsk_..." />
+              </div>
+              <div class="form-group">
+                <label for="settings-master-key">Master Ingress Key</label>
+                <input type="text" id="settings-master-key" value="sk-master-internal-network-key" />
+              </div>
+              <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+                <button type="button" class="native-btn primary" id="btn-save-settings">Save Key to Active Gateway</button>
+                <span id="settings-save-feedback" style="font-size: 11px; color: var(--accent-green);"></span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="./src/main.js"></script>
+</body>
+</html>

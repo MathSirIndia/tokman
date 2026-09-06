@@ -1,0 +1,73 @@
+services:
+  # ==============================================================================
+  # 1. CORE ROUTING & RUNTIME LAYER
+  # ==============================================================================
+  litellm:
+    image: ghcr.io/berriai/litellm-database:main-latest
+    container_name: ai-gateway-litellm
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4000:4000"
+    volumes:
+      - ./config/config.yaml:/app/config.yaml:ro
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    deploy:
+      resources:
+        limits:
+          memory: ${MEM_LIMIT_LITELLM:-512M}
+
+  # ==============================================================================
+  # 2. STATE, PERSISTENCE & TELEMETRY
+  # ==============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai-gateway-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-gateway}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-gateway_secure_pass_replace_me}
+      - POSTGRES_DB=${POSTGRES_DB:-litellm}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - type: tmpfs
+        target: /var/lib/postgresql/wal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gateway}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: ${MEM_LIMIT_POSTGRES:-256M}
+
+  redis:
+    image: redis:7-alpine
+    container_name: ai-gateway-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "no", "--save", "60 100", "--maxmemory", "90mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: ${MEM_LIMIT_REDIS:-128M}

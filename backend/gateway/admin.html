@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TOKMAN MESH CONTROL PLANE</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                "tertiary-fixed-dim": "#ffb3ad",
+                "error": "#ffb4ab",
+                "inverse-primary": "#005ac2",
+                "error-container": "#93000a",
+                "on-secondary": "#003824",
+                "on-primary-container": "#00285d",
+                "on-primary": "#002e6a",
+                "surface-container-highest": "#2d3447",
+                "surface-variant": "#2d3447",
+                "on-primary-fixed-variant": "#004395",
+                "surface-tint": "#adc6ff",
+                "outline-variant": "#424754",
+                "on-tertiary-fixed": "#410004",
+                "surface-bright": "#32394c",
+                "primary-fixed": "#d8e2ff",
+                "tertiary-fixed": "#ffdad7",
+                "surface-container-lowest": "#070e1f",
+                "secondary-fixed": "#6ffbbe",
+                "surface": "#0c1324",
+                "background": "#0c1324",
+                "surface-container": "#181f31",
+                "inverse-surface": "#dbe2fa",
+                "primary-container": "#4d8eff",
+                "on-surface": "#dbe2fa",
+                "on-error": "#690005",
+                "outline": "#8c909f",
+                "surface-container-high": "#232a3c",
+                "on-primary-fixed": "#001a42",
+                "surface-dim": "#0c1324",
+                "on-tertiary-container": "#5c0008",
+                "on-background": "#dbe2fa",
+                "on-secondary-fixed-variant": "#005236",
+                "secondary-fixed-dim": "#4edea3",
+                "on-tertiary": "#68000a",
+                "on-secondary-fixed": "#002113",
+                "primary-fixed-dim": "#adc6ff",
+                "secondary": "#4edea3",
+                "inverse-on-surface": "#293043",
+                "tertiary-container": "#ff5451",
+                "on-error-container": "#ffdad6",
+                "secondary-container": "#00a572",
+                "on-secondary-container": "#00311f",
+                "tertiary": "#ffb3ad",
+                "surface-container-low": "#141b2d",
+                "primary": "#adc6ff",
+                "on-tertiary-fixed-variant": "#930013",
+                "on-surface-variant": "#c2c6d6"
+              },
+              "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+              },
+              "spacing": {
+                "margin": "16px",
+                "lg": "24px",
+                "gutter": "12px",
+                "sm": "8px",
+                "unit": "4px",
+                "md": "16px",
+                "xs": "4px"
+              },
+              "fontFamily": {
+                "body-md": [
+                  "Inter"
+                ],
+                "body-sm": [
+                  "Inter"
+                ],
+                "headline-lg": [
+                  "Inter"
+                ],
+                "data-mono-sm": [
+                  "JetBrains Mono"
+                ],
+                "label-caps": [
+                  "Inter"
+                ],
+                "data-mono-lg": [
+                  "JetBrains Mono"
+                ],
+                "headline-md": [
+                  "Inter"
+                ]
+              },
+              "fontSize": {
+                "body-md": [
+                  "14px",
+                  {
+                    "lineHeight": "20px",
+                    "fontWeight": "400"
+                  }
+                ],
+                "body-sm": [
+                  "12px",
+                  {
+                    "lineHeight": "16px",
+                    "fontWeight": "400"
+                  }
+                ],
+                "headline-lg": [
+                  "24px",
+                  {
+                    "lineHeight": "32px",
+                    "letterSpacing": "-0.02em",
+                    "fontWeight": "600"
+                  }
+                ],
+                "data-mono-sm": [
+                  "12px",
+                  {
+                    "lineHeight": "16px",
+                    "fontWeight": "400"
+                  }
+                ],
+                "label-caps": [
+                  "11px",
+                  {
+                    "lineHeight": "16px",
+                    "letterSpacing": "0.05em",
+                    "fontWeight": "700"
+                  }
+                ],
+                "data-mono-lg": [
+                  "14px",
+                  {
+                    "lineHeight": "20px",
+                    "fontWeight": "500"
+                  }
+                ],
+                "headline-md": [
+                  "18px",
+                  {
+                    "lineHeight": "24px",
+                    "letterSpacing": "-0.01em",
+                    "fontWeight": "600"
+                  }
+                ]
+              }
+            },
+          },
+        }
+      </script>
+<style>
+        body {
+            background-color: #0b0e14;
+            color: #dbe2fa;
+            -webkit-font-smoothing: antialiased;
+        }
+        .pulse-ring {
+            position: relative;
+        }
+        .pulse-ring::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid theme('colors.secondary');
+            animation: pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-border {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        .card-border {
+            border: 1px solid #1f2638;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<nav class="flex justify-between items-center w-full px-md h-14 bg-surface dark:bg-surface border-b border-outline-variant dark:border-outline-variant sticky top-0 z-50">
+<div class="flex items-center gap-6">
+<div class="text-headline-md font-headline-md font-bold tracking-tight text-on-surface dark:text-on-surface">
+                TOKMAN MESH CONTROL PLANE
+            </div>
+<div class="hidden lg:flex items-center gap-xs bg-surface-container px-sm py-xs rounded border border-outline-variant">
+<div class="w-2 h-2 rounded-full bg-secondary pulse-ring mx-sm"></div>
+<span class="text-label-caps font-label-caps text-secondary uppercase tracking-wider">FLEET HEALTHY: 8/8 NODES ACTIVE</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden xl:flex gap-4 border-r border-outline-variant pr-6">
+<div class="flex flex-col items-end">
+<span class="text-label-caps font-label-caps text-on-surface-variant uppercase">Throughput</span>
+<span class="text-data-mono-lg font-data-mono-lg text-primary">32,450 tok/s</span>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-label-caps font-label-caps text-on-surface-variant uppercase">P99 Latency</span>
+<span class="text-data-mono-lg font-data-mono-lg text-secondary">142ms</span>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-label-caps font-label-caps text-on-surface-variant uppercase">Cost Saved</span>
+<span class="text-data-mono-lg font-data-mono-lg text-tertiary-fixed-dim">$1,420/day</span>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-label-caps font-label-caps text-on-surface-variant uppercase">Cache Hit</span>
+<span class="text-data-mono-lg font-data-mono-lg text-primary-fixed-dim">41.8%</span>
+</div>
+</div>
+<div class="hidden md:flex gap-4">
+<button class="text-primary dark:text-primary border-b-2 border-primary dark:border-primary pb-1 text-headline-md font-headline-md hover:bg-surface-container-highest dark:hover:bg-surface-container-highest transition-colors opacity-80 duration-100">Mesh Topology</button>
+<button class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface text-headline-md font-headline-md hover:bg-surface-container-highest dark:hover:bg-surface-container-highest transition-colors">Quota Rings</button>
+<button class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface text-headline-md font-headline-md hover:bg-surface-container-highest dark:hover:bg-surface-container-highest transition-colors">Stack Optimizer</button>
+<button class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface text-headline-md font-headline-md hover:bg-surface-container-highest dark:hover:bg-surface-container-highest transition-colors">Security</button>
+</div>
+<div class="flex items-center gap-sm">
+<button class="p-unit hover:bg-surface-container-highest rounded transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-unit hover:bg-surface-container-highest rounded transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-8 h-8 rounded bg-surface-container-high border border-outline-variant ml-sm overflow-hidden flex items-center justify-center">
+<img alt="SRE Profile" class="w-full h-full object-cover" data-alt="A macro shot of a sleek, futuristic metallic server rack component with glowing blue LED indicators in a dark, clean data center environment. High contrast, sharp focus, cyberpunk industrial aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuZjsncyBRAalsJIda8JvJQZYLmYPZMh48J-8w3gYHLltFDlNMgwi66eOfOv9DcGgTaOsOP3ZcDnZlLK-bYYVzBoJ4IqK_CiPwV5AuQ1c6TSxv1rBH_e3PTkkgIKmmLFtGckf23xD2VOM_qsTMshFB8z535ic0PzyASkbwKhlKXDMalf_zjXUbosJ1GuG22nZOAPLQRiuefz2ZvX-qCvYcl88PmO-YUWgu6Vm8wZqmZuRHBC9ScKw2CVuCxMEaURXYGk28fxNwLg"/>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Layout -->
+<div class="flex flex-1 overflow-hidden">
+<!-- SideNavBar -->
+<aside class="hidden lg:flex flex-col h-full border-r border-outline-variant bg-surface-container dark:bg-surface-container w-64 docked left-0 flex-shrink-0">
+<div class="p-md border-b border-outline-variant flex items-center gap-sm">
+<div class="w-10 h-10 rounded border border-outline-variant bg-surface overflow-hidden flex items-center justify-center relative">
+<img alt="System Status Indicator" class="w-full h-full object-cover opacity-80" data-alt="A stylized geometric graphic of a glowing green sphere connected to multiple nodes on a dark slate background, representing a healthy network. Minimalist, technical, flat design style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBU7Un4RzwliMcmPk4qzVJbf8VU15iN7cI7BXh-kaIrDbSs7YZGnl-uozApZBYLu69_yWyaNTyxNtZ4K34QMmqdYFSwS7j1EPOEySuO2oulHED2TFVdytunVqf4ssIwjXDSkfjPsf-LJW0wLQM_0uizzSrByfM8npLkNTals93vH3RPXvGVwz-nh6ZOLuoeLLu7w2N25GhStoqvoU9y4lyjTgTfMf4FduhNpvkJKBf4Dv9GuyrsDacrYdxS6NAI80eZAmVD5SNhNA"/>
+</div>
+<div>
+<div class="text-label-caps font-label-caps text-secondary pulse flex items-center gap-xs">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+                        FLEET HEALTHY
+                    </div>
+<div class="text-body-sm font-body-sm text-on-surface-variant">99.98% Uptime</div>
+</div>
+</div>
+<nav class="flex-1 py-sm px-xs overflow-y-auto">
+<button class="w-full flex items-center gap-md px-sm py-2 mb-unit bg-primary-container dark:bg-primary-container text-on-primary-container dark:text-on-primary-container rounded-lg text-label-caps font-label-caps hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors scale-95">
+<span class="material-symbols-outlined text-[18px]">cloud_done</span>
+                    Providers
+                </button>
+<button class="w-full flex items-center gap-md px-sm py-2 mb-unit text-on-surface-variant dark:text-on-surface-variant rounded-lg text-label-caps font-label-caps hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+                    Regional Logs
+                </button>
+<button class="w-full flex items-center gap-md px-sm py-2 mb-unit text-on-surface-variant dark:text-on-surface-variant rounded-lg text-label-caps font-label-caps hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]">analytics</span>
+                    Trace Explorer
+                </button>
+<button class="w-full flex items-center gap-md px-sm py-2 text-on-surface-variant dark:text-on-surface-variant rounded-lg text-label-caps font-label-caps hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]">inventory_2</span>
+                    Node Inventory
+                </button>
+</nav>
+<div class="p-sm border-t border-outline-variant">
+<button class="w-full flex items-center gap-md px-sm py-2 mb-unit text-on-surface-variant dark:text-on-surface-variant rounded-lg text-label-caps font-label-caps hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]">description</span>
+                    Docs
+                </button>
+<button class="w-full flex items-center gap-md px-sm py-2 text-on-surface-variant dark:text-on-surface-variant rounded-lg text-label-caps font-label-caps hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-[18px]">logout</span>
+                    Logout
+                </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto p-md bg-[#0b0e14]">
+<div class="grid grid-cols-12 gap-md max-w-[1600px] mx-auto pb-lg">
+<!-- Section 1: Distributed Edge Nodes -->
+<section class="col-span-12 xl:col-span-8 flex flex-col gap-sm">
+<div class="flex items-center justify-between mb-unit">
+<h2 class="text-headline-md font-headline-md text-on-surface tracking-tight uppercase">Distributed WireGuard Edge Nodes</h2>
+<span class="text-data-mono-sm font-data-mono-sm text-outline-variant">Total Capacity: 150k tok/s</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-sm">
+<!-- Node Card 1 -->
+<div class="bg-surface card-border rounded p-sm flex flex-col gap-sm relative overflow-hidden group hover:bg-surface-container-lowest transition-colors">
+<div class="flex justify-between items-start border-b border-outline-variant pb-xs">
+<div class="flex flex-col">
+<span class="text-label-caps font-label-caps text-primary">US-East-1</span>
+<span class="text-data-mono-sm font-data-mono-sm text-on-surface">node-01.mesh.tokman.internal</span>
+</div>
+<div class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_4px_#4edea3]"></div>
+</div>
+<div class="grid grid-cols-2 gap-xs">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-outline">IP Address</span>
+<span class="text-data-mono-sm font-data-mono-sm text-on-surface-variant">10.42.0.1</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-outline">WG Ping</span>
+<span class="text-data-mono-sm font-data-mono-sm text-secondary">12ms</span>
+</div>
+</div>
+<div class="flex flex-col mt-xs border-t border-outline-variant pt-xs">
+<div class="flex justify-between items-center mb-xs">
+<span class="text-[10px] uppercase text-outline">Active Providers</span>
+<span class="text-data-mono-sm font-data-mono-sm text-on-surface">4,200 tok/s</span>
+</div>
+<div class="flex flex-wrap gap-unit">
+<span class="px-xs py-[2px] rounded bg-surface-container-high border border-outline-variant text-[10px] text-on-surface-variant font-data-mono-sm">Groq</span>
+<span class="px-xs py-[2px] rounded bg-surface-container-high border border-outline-variant text-[10px] text-on-surface-variant font-data-mono-sm">Cerebras</span>
+</div>
+</div>
+</div>
+<!-- Node Card 2 -->
+<div class="bg-surface card-border rounded p-sm flex flex-col gap-sm relative overflow-hidden group hover:bg-surface-container-lowest transition-colors">
+<div class="flex justify-between items-start border-b border-outline-variant pb-xs">
+<div class="flex flex-col">
+<span class="text-label-caps font-label-caps text-primary">US-West-2</span>
+<span class="text-data-mono-sm font-data-mono-sm text-on-surface">node-02.mesh.tokman.internal</span>
+</div>
+<div class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_4px_#4edea3]"></div>
+</div>
+<div class="grid grid-cols-2 gap-xs">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-outline">IP Address</span>
+<span class="text-data-mono-sm font-data-mono-sm text-on-surface-variant">10.42.0.2</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-outline">WG Ping</span>
+<span class="text-data-mono-sm font-data-mono-sm text-secondary">24ms</span>
+</div>
+</div>
+<div class="flex flex-col mt-xs border-t border-outline-variant pt-xs">
+<div class="flex justify-between items-center mb-xs">
+<span class="text-[10px] uppercase text-outline">Active Providers</span>
+<span class="text-data-mono-sm font-data-mono-sm text-on-surface">3,800 tok/s</span>
+</div>
+<div class="flex flex-wrap gap-unit">
+<span class="px-xs py-[2px] rounded bg-surface-container-high border border-outline-variant text-[10px] text-on-surface-variant font-data-mono-sm">SambaNova</span>
+</div>
+</div>
+</div>
+<!-- Node Card 3 -->
+<div class="bg-surface card-border rounded p-sm flex flex-col gap-sm relative overflow-hidden group hover:bg-surface-container-lowest transition-colors">
+<div class="flex justify-between items-start border-b border-outline-variant pb-xs">
+<div class="flex flex-col">
+<span class="text-label-caps font-label-caps text-primary">EU-Central-1</span>
+<span class="text-data-mono-sm font-data-mono-sm text-on-surface">node-eu1.mesh.tokman</span>
+</div>
+<div class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_4px_#4edea3]"></div>
+</div>
+<div class="grid grid-cols-2 gap-xs">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-outline">IP Address</span>
+<span class="text-data-mono-sm font-data-mono-sm text-on-surface-variant">10.42.1.1</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-outline">WG Ping</span>
+<span class="text-data-mono-sm font-data-mono-sm text-secondary">85ms</span>
+</div>
+</div>
+<div class="flex flex-col mt-xs border-t border-outline-variant pt-xs">
+<div class="flex justify-between items-center mb-xs">
+<span class="text-[10px] uppercase text-outline">Active Providers</span>
+<span class="text-data-mono-sm font-data-mono-sm text-on-surface">1,200 tok/s</span>
+</div>
+<div class="flex flex-wrap gap-unit">
+<span class="px-xs py-[2px] rounded bg-surface-container-high border border-outline-variant text-[10px] text-on-surface-variant font-data-mono-sm">Groq</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Terminal Feed -->
+<section class="col-span-12 xl:col-span-4 flex flex-col h-[400px]">
+<div class="flex items-center justify-between mb-unit">
+<h2 class="text-headline-md font-headline-md text-on-surface tracking-tight uppercase">Real-time Gossip Stream</h2>
+<span class="material-symbols-outlined text-outline text-[16px]">sync</span>
+</div>
+<div class="flex-1 bg-surface card-border rounded p-sm overflow-hidden flex flex-col font-data-mono-sm text-data-mono-sm leading-tight">
+<div class="flex-1 overflow-y-auto flex flex-col gap-1 text-on-surface-variant opacity-80" id="terminal-feed">
+<div class="flex gap-xs"><span class="text-outline">[10:42:01]</span><span class="text-secondary">INFO</span> <span>node-01: Sync state verified with cluster.</span></div>
+<div class="flex gap-xs"><span class="text-outline">[10:42:02]</span><span class="text-tertiary-fixed-dim">WARN</span> <span>node-eu1: Latency spike detected on link to US-East-1.</span></div>
+<div class="flex gap-xs"><span class="text-outline">[10:42:05]</span><span class="text-primary">ACTN</span> <span>Load balancer re-routing 400 req/s to node-02.</span></div>
+<div class="flex gap-xs"><span class="text-outline">[10:42:10]</span><span class="text-secondary">INFO</span> <span>Gossip ring updated. Gen: 4892.</span></div>
+<div class="flex gap-xs"><span class="text-outline">[10:42:15]</span><span class="text-secondary">INFO</span> <span>Circuit breaker closed for SambaNova provider.</span></div>
+<div class="flex gap-xs"><span class="text-outline">[10:42:18]</span><span class="text-outline">DBUG</span> <span>WAL flush triggered. 42MB written.</span></div>
+<div class="flex gap-xs"><span class="text-outline">[10:42:22]</span><span class="text-secondary">INFO</span> <span>New peer joined: AP-South-1 (10.42.2.1)</span></div>
+</div>
+</div>
+</section>
+<!-- Section 3: Distribution -->
+<section class="col-span-12 mt-md">
+<div class="flex items-center justify-between mb-unit">
+<h2 class="text-headline-md font-headline-md text-on-surface tracking-tight uppercase">Global Request Distribution</h2>
+</div>
+<div class="bg-surface card-border rounded p-md h-64 relative overflow-hidden flex items-end">
+<!-- Simulated Bar Chart Background -->
+<div class="absolute inset-0 opacity-20 pointer-events-none flex items-end justify-around px-10 pb-4">
+<div class="w-12 bg-primary h-[80%]"></div>
+<div class="w-12 bg-secondary h-[40%]"></div>
+<div class="w-12 bg-tertiary-fixed-dim h-[60%]"></div>
+<div class="w-12 bg-primary-fixed h-[90%]"></div>
+<div class="w-12 bg-outline h-[30%]"></div>
+</div>
+<div class="w-full z-10 flex justify-between border-t border-outline-variant pt-2 mt-auto">
+<div class="text-data-mono-sm font-data-mono-sm text-on-surface-variant uppercase text-center w-12">Groq<br/><span class="text-primary">45%</span></div>
+<div class="text-data-mono-sm font-data-mono-sm text-on-surface-variant uppercase text-center w-12">Cereb<br/><span class="text-secondary">15%</span></div>
+<div class="text-data-mono-sm font-data-mono-sm text-on-surface-variant uppercase text-center w-12">Samba<br/><span class="text-tertiary-fixed-dim">25%</span></div>
+<div class="text-data-mono-sm font-data-mono-sm text-on-surface-variant uppercase text-center w-12">OpenAI<br/><span class="text-primary-fixed">10%</span></div>
+<div class="text-data-mono-sm font-data-mono-sm text-on-surface-variant uppercase text-center w-12">Other<br/><span class="text-outline">5%</span></div>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+<!-- Footer -->
+<footer class="fixed bottom-0 left-0 w-full z-50 flex items-center justify-between px-md bg-surface-container-lowest dark:bg-surface-container-lowest text-data-mono-sm border-t border-outline-variant dark:border-outline-variant h-8 docked full-width">
+<div class="text-data-mono-sm font-data-mono-sm font-bold text-secondary">
+            TOKMAN MESH v2.4.1-stable | WireGuard: ACTIVE
+        </div>
+<div class="flex gap-md text-outline dark:text-outline">
+<span class="hover:text-primary dark:hover:text-primary transition-colors cursor-default">Mem: 4.2GB/Node</span>
+<span class="hover:text-primary dark:hover:text-primary transition-colors cursor-default">WAL: SYNCED</span>
+<span class="hover:text-primary dark:hover:text-primary transition-colors cursor-default">v1.8.2-mesh</span>
+</div>
+</footer>
+<script>
+        // Simple script to auto-scroll terminal feed for dramatic effect
+        const feed = document.getElementById('terminal-feed');
+        if(feed) {
+             setInterval(() => {
+                 feed.scrollTop = feed.scrollHeight;
+             }, 1000);
+        }
+    </script>
+</body></html>

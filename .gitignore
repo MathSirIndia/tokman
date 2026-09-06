@@ -1,0 +1,31 @@
+# Environment & Secrets
+.env
+*.key
+*.pem
+
+# Build Artifacts & Binaries
+build/
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+tokman
+
+# Persistent Storage & Databases
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+data/postgres/
+data/redis/
+data/webui/
+data/tailscale/
+data/artifacts/
+data/logs/
+
+# System & OS Files
+.DS_Store
+Thumbs.db
+

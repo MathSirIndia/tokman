@@ -1,0 +1,8 @@
+{
+  "name": "tokman-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "mkdir -p dist && cp -r src/* dist/ 2>/dev/null || true && cp index.html dist/"
+  }
+}

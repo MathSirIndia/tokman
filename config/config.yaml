@@ -1,0 +1,58 @@
+model_list:
+  # ==============================================================================
+  # 1. POOL/GENERAL (Frontline Core)
+  # ==============================================================================
+  - model_name: pool/general
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: os.environ/GROQ_API_KEY
+      rpm: 24
+      tpm: 25000
+
+  - model_name: pool/general
+    litellm_params:
+      model: cerebras/llama3.3-70b
+      api_key: os.environ/CEREBRAS_API_KEY
+      rpm: 24
+      tpm: 50000
+
+  - model_name: pool/general
+    litellm_params:
+      model: gemini/gemini-2.0-flash
+      api_key: os.environ/GEMINI_API_KEY
+      rpm: 12
+      tpm: 800000
+
+  # ==============================================================================
+  # 2. POOL/DEEP-REASONING (Frontline Core)
+  # ==============================================================================
+  - model_name: pool/deep-reasoning
+    litellm_params:
+      model: groq/deepseek-r1-distill-llama-70b
+      api_key: os.environ/GROQ_API_KEY
+      rpm: 24
+      tpm: 25000
+
+  - model_name: pool/deep-reasoning
+    litellm_params:
+      model: gemini/gemini-2.0-flash-thinking-exp
+      api_key: os.environ/GEMINI_API_KEY
+      rpm: 12
+
+router_settings:
+  routing_strategy: usage-based-routing-v2
+  enable_pre_call_checks: true
+  redis_host: redis
+  redis_port: 6379
+  allowed_fails: 1
+  cooldown_time: 90
+  num_retries: 3
+  retry_after: 2
+
+litellm_settings:
+  cache: true
+  cache_type: "redis"
+  cache_params:
+    host: "redis"
+    port: 6379
+    supported_call_types: ["completion", "acompletion"]
