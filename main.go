@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -82,7 +83,10 @@ func main() {
 	}()
 
 	// Determine if running in a headless environment
-	hasDisplay := os.Getenv("DISPLAY") != "" || os.Getenv("WAYLAND_DISPLAY") != ""
+	hasDisplay := true
+	if runtime.GOOS == "linux" {
+		hasDisplay = os.Getenv("DISPLAY") != "" || os.Getenv("WAYLAND_DISPLAY") != ""
+	}
 	runHeadless := *headless || (!hasDisplay && !*guiFlag)
 
 	if runHeadless {

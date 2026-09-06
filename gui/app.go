@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -187,11 +186,7 @@ func (a *AppUI) startStatusTicker() {
 			}
 		}
 
-		diskFreeGB := 0.0
-		var stat syscall.Statfs_t
-		if err := syscall.Statfs(".", &stat); err == nil {
-			diskFreeGB = float64(stat.Bavail*uint64(stat.Bsize)) / 1024 / 1024 / 1024
-		}
+		diskFreeGB := getDiskFreeGB()
 
 		// Uptime
 		elapsed := time.Since(a.startTime)
