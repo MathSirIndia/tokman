@@ -57,27 +57,37 @@ echo "Readiness Telemetry: $READINESS"
 MODELS=$(curl -s "$GATEWAY_URL/v1/models")
 echo "Available Pools: $MODELS"
 
+now_ms() {
+    if date +%s%N 2>/dev/null | grep -qv "N"; then
+        echo $(( $(date +%s%N) / 1000000 ))
+    elif command -v python3 >/dev/null 2>&1; then
+        python3 -c 'import time; print(int(time.time() * 1000))'
+    else
+        echo $(( $(date +%s) * 1000 ))
+    fi
+}
+
 echo ""
 echo "--> [4/4] Verifying Live Completion & In-Memory Cache..."
 if [ -n "$GROQ_API_KEY" ] && [[ "$GROQ_API_KEY" != gsk_replace* ]]; then
     echo "--> GROQ_API_KEY detected. Testing live completion on pool/general..."
     
-    START_TIME=$(date +%s%N)
+    START_TIME=$(now_ms)
     RESP1=$(curl -s -i "$GATEWAY_URL/v1/chat/completions" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer ${LITELLM_MASTER_KEY:-sk-master-internal-network-key}" \
         -d '{"model": "pool/general", "messages": [{"role": "user", "content": "Respond with the word online."}], "max_tokens": 10}')
-    ELAPSED1=$(( ($(date +%s%N) - START_TIME) / 1000000 ))
+    ELAPSED1=$(( $(now_ms) - START_TIME ))
     
     CACHE_STATUS1=$(echo "$RESP1" | grep -i "x-cache:" | tr -d '\r' || echo "X-Cache: MISS")
     echo "Call 1 (Network round-trip): ${ELAPSED1}ms [${CACHE_STATUS1}]"
     
-    START_TIME=$(date +%s%N)
+    START_TIME=$(now_ms)
     RESP2=$(curl -s -i "$GATEWAY_URL/v1/chat/completions" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer ${LITELLM_MASTER_KEY:-sk-master-internal-network-key}" \
         -d '{"model": "pool/general", "messages": [{"role": "user", "content": "Respond with the word online."}], "max_tokens": 10}')
-    ELAPSED2=$(( ($(date +%s%N) - START_TIME) / 1000000 ))
+    ELAPSED2=$(( $(now_ms) - START_TIME ))
     
     CACHE_STATUS2=$(echo "$RESP2" | grep -i "x-cache:" | tr -d '\r' || echo "X-Cache: HIT")
     echo "Call 2 (In-memory cache):   ${ELAPSED2}ms [${CACHE_STATUS2}]"
