@@ -48,7 +48,11 @@ type AppUI struct {
 	cacheEntriesLabel  *widget.Label
 	cacheSavedLabel    *widget.Label
 
-	statusBarLabel *widget.Label
+	endpointsMasterKeyEntry *widget.Entry
+	healthProcessRamLabel   *widget.Label
+	statusBarLabel          *widget.Label
+
+	poolSplitOffset float64
 }
 
 // Run initializes and executes the Fyne native desktop GUI
@@ -61,20 +65,22 @@ func Run(gwServer *gateway.Server, db *storage.DB, cache *storage.LRUCache, init
 	window.CenterOnScreen()
 
 	ui := &AppUI{
-		app:       fyneApp,
-		window:    window,
-		gwServer:  gwServer,
-		db:        db,
-		cache:     cache,
-		startTime: time.Now(),
+		app:             fyneApp,
+		window:          window,
+		gwServer:        gwServer,
+		db:              db,
+		cache:           cache,
+		startTime:       time.Now(),
+		poolSplitOffset: 0.32,
 	}
 
 	tab1 := container.NewTabItemWithIcon("Endpoints Hub", theme.HomeIcon(), ui.buildEndpointsTab())
-	tab2 := container.NewTabItemWithIcon("Quick Test Console", theme.MediaPlayIcon(), ui.buildConsoleTab())
-	tab3 := container.NewTabItemWithIcon("Cache Ledger", theme.StorageIcon(), ui.buildCacheTab())
-	tab4 := container.NewTabItemWithIcon("Daemon Settings", theme.SettingsIcon(), ui.buildSettingsTab())
+	tab2 := container.NewTabItemWithIcon("Provider Matrix", theme.ListIcon(), ui.buildModelsTab())
+	tab3 := container.NewTabItemWithIcon("Quick Test Console", theme.MediaPlayIcon(), ui.buildConsoleTab())
+	tab4 := container.NewTabItemWithIcon("Cache Ledger", theme.StorageIcon(), ui.buildCacheTab())
+	tab5 := container.NewTabItemWithIcon("Daemon Settings", theme.SettingsIcon(), ui.buildSettingsTab())
 
-	ui.tabs = container.NewAppTabs(tab1, tab2, tab3, tab4)
+	ui.tabs = container.NewAppTabs(tab1, tab2, tab3, tab4, tab5)
 	if initialTab > 0 && initialTab < len(ui.tabs.Items) {
 		ui.tabs.SelectIndex(initialTab)
 	}
@@ -181,7 +187,7 @@ func (a *AppUI) startStatusTicker() {
 		secs := int(elapsed.Seconds()) % 60
 		uptimeStr := fmt.Sprintf("%02dh %02dm %02ds", hours, mins, secs)
 
-		// Active Pools & Models metrics (Module 1 Runtime State vs Roadmap Architecture)
+		// Active Pools & Models metrics
 		totalPools := len(capabilityPools)
 		activePools := 0
 		for _, p := range capabilityPools {
@@ -189,17 +195,20 @@ func (a *AppUI) startStatusTicker() {
 				activePools++
 			}
 		}
-		totalModelSlots := 144 // Master 144-Model Capability Matrix target (docs/report.md Section 5)
-		activeModels := activePools // 1 active flagship model running on Groq in Module 1
-
 		statusText := fmt.Sprintf(
-			"Host RAM: %.1f MB / %.1f GB   |   ROM: %.1f MB / %.0f GB   |   Pools: %d/%d Active   |   Models: %d/%d Active   |   Uptime: %s",
-			procRAMMB, hostRAMTotalGB, appStorageMB, diskFreeGB, activePools, totalPools, activeModels, totalModelSlots, uptimeStr,
+			"RAM: %.1f MB / %.1f GB   |   Storage: %.1f MB (%.0f GB Free)   |   Pools: %d/%d Routed   |   Uptime: %s",
+			procRAMMB, hostRAMTotalGB, appStorageMB, diskFreeGB, activePools, totalPools, uptimeStr,
 		)
 
 		if a.statusBarLabel != nil {
 			fyne.Do(func() {
 				a.statusBarLabel.SetText(statusText)
+			})
+		}
+
+		if a.healthProcessRamLabel != nil {
+			fyne.Do(func() {
+				a.healthProcessRamLabel.SetText(fmt.Sprintf("%.1f MB / %.1f GB", procRAMMB, hostRAMTotalGB))
 			})
 		}
 	}

@@ -60,14 +60,14 @@ func (a *AppUI) buildCacheTab() fyne.CanvasObject {
 	// =========================================================================
 	a.ledgerListContainer = container.NewVBox()
 
-	headerRow := container.NewHBox(
-		widget.NewLabelWithStyle("TIMESTAMP        ", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
-		widget.NewLabelWithStyle("REQUEST ID  ", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
-		widget.NewLabelWithStyle("MODEL POOL           ", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
-		widget.NewLabelWithStyle("TOKENS  ", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
-		widget.NewLabelWithStyle("LATENCY    ", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
-		widget.NewLabelWithStyle("STATUS   ", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
-		widget.NewLabelWithStyle("CACHE", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
+	headerGrid := container.NewGridWithColumns(7,
+		widget.NewLabelWithStyle("TIMESTAMP", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
+		widget.NewLabelWithStyle("REQUEST ID", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
+		widget.NewLabelWithStyle("MODEL POOL", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
+		widget.NewLabelWithStyle("TOKENS", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
+		widget.NewLabelWithStyle("LATENCY", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
+		widget.NewLabelWithStyle("STATUS", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
+		widget.NewLabelWithStyle("CACHE STATE", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
 	)
 
 	ledgerCard := createStitchCard(
@@ -75,7 +75,7 @@ func (a *AppUI) buildCacheTab() fyne.CanvasObject {
 		theme.StorageIcon(),
 		widget.NewLabelWithStyle("data/tokman.db", fyne.TextAlignTrailing, fyne.TextStyle{Monospace: true, Italic: true}),
 		container.NewVBox(
-			headerRow,
+			headerGrid,
 			verticalSpacer(2),
 			widget.NewSeparator(),
 			verticalSpacer(4),
@@ -152,30 +152,33 @@ func (a *AppUI) refreshLedger() {
 			return
 		}
 
-		// Show top 3 rows to preserve clean viewport balance
+		// Show recent ledger rows with pixel-perfect column alignment
 		for idx, l := range logs {
-			if idx >= 3 {
+			if idx >= 5 {
 				break
 			}
 			rec := l
 			timeStr := rec.Timestamp.Format("15:04:05")
 			idStr := fmt.Sprintf("#%d", rec.ID)
 			modelStr := rec.Model
-			if len(modelStr) > 20 {
-				modelStr = modelStr[:17] + "..."
-			}
 			tokStr := fmt.Sprintf("%d tok", rec.TotalTokens)
 			latStr := fmt.Sprintf("%.1f ms", rec.LatencyMs)
 			cacheTag := "MISS"
-			cacheColor := "🟡"
+			cacheHit := false
 			if rec.Cached {
 				cacheTag = "HIT"
-				cacheColor = "🟢"
+				cacheHit = true
 			}
 
-			line := fmt.Sprintf("%-16s %-12s %-20s %-8s %-10s %-8s %s %s", timeStr, idStr, modelStr, tokStr, latStr, "200 OK", cacheColor, cacheTag)
+			timeLbl := widget.NewLabelWithStyle(timeStr, fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+			idLbl := widget.NewLabelWithStyle(idStr, fyne.TextAlignLeading, fyne.TextStyle{Monospace: true, Bold: true})
+			modelLbl := widget.NewLabelWithStyle(modelStr, fyne.TextAlignLeading, fyne.TextStyle{Bold: true})
+			tokLbl := widget.NewLabelWithStyle(tokStr, fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+			latLbl := widget.NewLabelWithStyle(latStr, fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+			statusBadge := createPillBadge("200 OK", true)
+			cacheBadge := createPillBadge(cacheTag, cacheHit)
 
-			btn := widget.NewButton(line, func() {
+			inspectBtn := widget.NewButtonWithIcon("Inspect", theme.InfoIcon(), func() {
 				a.inspectorLabel.SetText(fmt.Sprintf(`Prompt Hash (SHA-256):
 hash_%08x%08x%08x
 
@@ -198,8 +201,28 @@ Payload (Cached Response):
 					cacheTag,
 				))
 			})
-			btn.Alignment = widget.ButtonAlignLeading
-			a.ledgerListContainer.Add(btn)
+			inspectBtn.Importance = widget.LowImportance
+
+			rowGrid := container.NewGridWithColumns(7,
+				timeLbl,
+				idLbl,
+				modelLbl,
+				tokLbl,
+				latLbl,
+				container.NewHBox(statusBadge),
+				container.NewHBox(cacheBadge, horizontalSpacer(4), inspectBtn),
+			)
+
+			rowBg := canvas.NewRectangle(color.RGBA{R: 0x14, G: 0x14, B: 0x18, A: 0xff})
+			rowBg.CornerRadius = 4.0
+			rowBg.StrokeColor = color.RGBA{R: 0x22, G: 0x22, B: 0x28, A: 0xff}
+			rowBg.StrokeWidth = 1.0
+
+			rowPadded := container.NewBorder(verticalSpacer(2), verticalSpacer(2), horizontalSpacer(8), horizontalSpacer(8), rowGrid)
+			rowCard := container.NewStack(rowBg, rowPadded)
+
+			a.ledgerListContainer.Add(rowCard)
+			a.ledgerListContainer.Add(verticalSpacer(3))
 		}
 
 		a.ledgerListContainer.Refresh()

@@ -44,12 +44,12 @@ type ChatResponse struct {
 	} `json:"usage"`
 }
 
-// allPoolOptions derives from the central registry (BL-1)
-var allPoolOptions = registry.CanonicalPoolNames()
+// activePoolOptions derives from the central registry (only currently active/routed pools)
+var activePoolOptions = registry.ActivePoolNames()
 
 func getPoolOptionsExcluding(selected string) []string {
-	opts := make([]string, 0, len(allPoolOptions)-1)
-	for _, p := range allPoolOptions {
+	opts := make([]string, 0, len(activePoolOptions)-1)
+	for _, p := range activePoolOptions {
 		if p != selected {
 			opts = append(opts, p)
 		}

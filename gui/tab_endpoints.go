@@ -32,7 +32,7 @@ type ServicePortal struct {
 func getMeshPortals() []ServicePortal {
 	return []ServicePortal{
 		{
-			Name:        "FastAPI Interceptor & Traffic Shaper",
+			Name:        "Go Interceptor & Traffic Shaper",
 			Icon:        theme.HomeIcon(),
 			URL:         "http://localhost:8000/v1",
 			Port:        ":8000",
@@ -47,7 +47,7 @@ func getMeshPortals() []ServicePortal {
 			Name:        "Web Admin Mesh Control Plane",
 			Icon:        theme.ComputerIcon(),
 			URL:         "http://localhost:8000/admin",
-			Port:        ":3000 / :8000",
+			Port:        ":8000",
 			Status:      "Active (Ready)",
 			IsActive:    true,
 			Protocol:    "HTTP Web Portal",
@@ -116,15 +116,15 @@ func getMeshPortals() []ServicePortal {
 			ActionType:  "open_browser",
 		},
 		{
-			Name:        "LiteLLM Core Routing Engine",
+			Name:        "Go Federation Core Router",
 			Icon:        theme.MenuIcon(),
-			URL:         "http://localhost:4000",
-			Port:        ":4000",
-			Status:      "Embedded in Go Binary",
+			URL:         "http://localhost:8000/v1/models",
+			Port:        ":8000",
+			Status:      "Active (In-Process)",
 			IsActive:    true,
-			Protocol:    "Internal Router",
-			Description: "144-slot capability matrix, concentric quota rings 0-9 & circuit breakers",
-			ActionLabel: "View Matrix ↗",
+			Protocol:    "14-Pool Federation Engine",
+			Description: "144-slot capability matrix, concentric quota rings & sub-40ms supervisor",
+			ActionLabel: "View Models ↗",
 			ActionType:  "open_browser",
 		},
 	}
@@ -178,7 +178,6 @@ var gatewayEndpoints = []EndpointItem{
 
 func (a *AppUI) buildEndpointsTab() fyne.CanvasObject {
 	gatewayURL := fmt.Sprintf("http://localhost:%d", a.gwServer.Config.Port)
-	masterKey := a.gwServer.Config.MasterKey
 
 	// =========================================================================
 	// 1. Mesh Service Endpoints (Platform Access Portals - docs/report.md)
@@ -186,12 +185,14 @@ func (a *AppUI) buildEndpointsTab() fyne.CanvasObject {
 	portalsGrid := container.NewGridWithColumns(2)
 	for _, portal := range getMeshPortals() {
 		p := portal
-		if p.Name == "FastAPI Interceptor & Traffic Shaper" {
+		if p.Name == "Go Interceptor & Traffic Shaper" || p.Name == "FastAPI Interceptor & Traffic Shaper" {
 			p.URL = fmt.Sprintf("http://localhost:%d/v1", a.gwServer.Config.Port)
 		} else if p.Name == "Web Admin Mesh Control Plane" {
 			p.URL = fmt.Sprintf("http://localhost:%d/admin", a.gwServer.Config.Port)
 		} else if p.Name == "Tri-Tier ChatOps Bastion" {
 			p.URL = fmt.Sprintf("http://localhost:%d/bastion", a.gwServer.Config.Port)
+		} else if p.Name == "Go Federation Core Router" || p.Name == "LiteLLM Core Routing Engine" {
+			p.URL = fmt.Sprintf("http://localhost:%d/v1/models", a.gwServer.Config.Port)
 		}
 		portalsGrid.Add(a.createServicePortalCard(p))
 	}
@@ -216,26 +217,26 @@ func (a *AppUI) buildEndpointsTab() fyne.CanvasObject {
 	})
 	copyURLBtn.Importance = widget.LowImportance
 
-	keyEntry := widget.NewEntry()
-	keyEntry.SetText(masterKey)
-	keyEntry.TextStyle = fyne.TextStyle{Monospace: true}
-	keyEntry.Password = true
-	keyEntry.Disable()
+	a.endpointsMasterKeyEntry = widget.NewEntry()
+	a.endpointsMasterKeyEntry.SetText(a.gwServer.Config.MasterKey)
+	a.endpointsMasterKeyEntry.TextStyle = fyne.TextStyle{Monospace: true}
+	a.endpointsMasterKeyEntry.Password = true
+	a.endpointsMasterKeyEntry.Disable()
 
 	revealKeyBtn := widget.NewButtonWithIcon("", theme.VisibilityIcon(), nil)
 	revealKeyBtn.Importance = widget.LowImportance
 	revealKeyBtn.OnTapped = func() {
-		keyEntry.Password = !keyEntry.Password
-		if keyEntry.Password {
+		a.endpointsMasterKeyEntry.Password = !a.endpointsMasterKeyEntry.Password
+		if a.endpointsMasterKeyEntry.Password {
 			revealKeyBtn.SetIcon(theme.VisibilityIcon())
 		} else {
 			revealKeyBtn.SetIcon(theme.VisibilityOffIcon())
 		}
-		keyEntry.Refresh()
+		a.endpointsMasterKeyEntry.Refresh()
 	}
 
 	copyKeyBtn := widget.NewButtonWithIcon("", theme.ContentCopyIcon(), func() {
-		a.window.Clipboard().SetContent(masterKey)
+		a.window.Clipboard().SetContent(a.gwServer.Config.MasterKey)
 	})
 	copyKeyBtn.Importance = widget.LowImportance
 
@@ -246,9 +247,10 @@ func (a *AppUI) buildEndpointsTab() fyne.CanvasObject {
 	)
 
 	rightCol := container.NewVBox(
-		mutedText("MESH MASTER INTERNAL KEY", 10, true),
+		mutedText("MESH MASTER INTERNAL KEY (CLIENT INGRESS)", 10, true),
 		verticalSpacer(4),
-		container.NewBorder(nil, nil, nil, container.NewHBox(revealKeyBtn, copyKeyBtn), keyEntry),
+		container.NewBorder(nil, nil, nil, container.NewHBox(revealKeyBtn, copyKeyBtn), a.endpointsMasterKeyEntry),
+		mutedText("Bearer token for SDKs & curl (to re-generate or edit, open Daemon Settings)", 9, false),
 	)
 
 	ingressGrid := container.NewGridWithColumns(2, leftCol, rightCol)
@@ -292,28 +294,59 @@ func (a *AppUI) buildEndpointsTab() fyne.CanvasObject {
 	)
 
 	// =========================================================================
-	// 4. Capability Pools Catalog (Master 14-Pool Architecture)
+	// 4. Step-by-Step Gateway REST Integration Guide (docs/report.md)
 	// =========================================================================
-	poolsGrid := container.NewGridWithColumns(2)
-	for i := 0; i < 6 && i < len(capabilityPools); i++ {
-		poolsGrid.Add(a.createCompactPoolCard(capabilityPools[i]))
-	}
-
-	poolsCard := createStitchCard(
-		"Master Capability Pools (14-Pool Architecture)",
-		theme.StorageIcon(),
-		mutedText("12 Core + 2 Meta-Orchestrators", 11, false),
-		poolsGrid,
+	step1 := container.NewVBox(
+		widget.NewLabelWithStyle("1. Configure Client Base URL", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		mutedText("Set OpenAI API Base URL to http://localhost:8000/v1 in your client (Open WebUI, Cursor, Aider, Claude Code, or LangChain).", 10, false),
 	)
 
-	middleSplit := container.NewGridWithColumns(2, endpointsCard, poolsCard)
+	step2 := container.NewVBox(
+		widget.NewLabelWithStyle("2. Supply Master Ingress Key", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		mutedText("Pass your Mesh Master Internal Key (copied above) as the Authorization Bearer token header in all requests.", 10, false),
+	)
+
+	step3 := container.NewVBox(
+		widget.NewLabelWithStyle("3. Dispatch to Capability Pools", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		mutedText("Specify 'pool/auto' for sub-40ms autonomous intent routing, or target pools directly (e.g. pool/agent-coding, pool/general).", 10, false),
+	)
+
+	step4 := container.NewVBox(
+		widget.NewLabelWithStyle("4. Monitor Cache & Telemetry", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		mutedText("Switch to the Provider Matrix tab to inspect 4×4×4 fallback arrays, or Cache Ledger tab for sub-1ms cache hits & spend logs.", 10, false),
+	)
+
+	guideBox := container.NewVBox(
+		step1,
+		verticalSpacer(6),
+		widget.NewSeparator(),
+		verticalSpacer(6),
+		step2,
+		verticalSpacer(6),
+		widget.NewSeparator(),
+		verticalSpacer(6),
+		step3,
+		verticalSpacer(6),
+		widget.NewSeparator(),
+		verticalSpacer(6),
+		step4,
+	)
+
+	guideCard := createStitchCard(
+		"How to Use Gateway REST Endpoints",
+		theme.HelpIcon(),
+		mutedText("4-Step Integration Flow", 11, true),
+		guideBox,
+	)
+
+	middleSplit := container.NewGridWithColumns(2, endpointsCard, guideCard)
 
 	// =========================================================================
 	// 5. Quick-Start Example (cURL)
 	// =========================================================================
 	curlSnippet := fmt.Sprintf(`curl %s/v1/chat/completions \
   -H "Content-Type: application/json" -H "Authorization: Bearer %s" \
-  -d '{"model": "pool/general", "messages": [{"role": "user", "content": "Initialize mesh diagnostics."}]}'`, gatewayURL, masterKey)
+  -d '{"model": "pool/general", "messages": [{"role": "user", "content": "Initialize mesh diagnostics."}]}'`, gatewayURL, a.gwServer.Config.MasterKey)
 
 	curlLbl := widget.NewLabelWithStyle(curlSnippet, fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 	curlBox := createInsetBox(curlLbl)
@@ -525,6 +558,6 @@ func (a *AppUI) openInConsole(poolName, prompt string) {
 	if a.tabs != nil {
 		a.updateConsolePool(poolName)
 		a.consolePromptEntry.SetText(prompt)
-		a.tabs.SelectIndex(1) // Tab 2: Quick Test Console
+		a.tabs.SelectIndex(2) // Tab 3: Quick Test Console
 	}
 }

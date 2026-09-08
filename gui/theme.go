@@ -25,13 +25,17 @@ func (t *TokmanTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant)
 	case theme.ColorNameForeground:
 		return color.RGBA{R: 0xf4, G: 0xf4, B: 0xf5, A: 0xff} // #f4f4f5 Primary Text
 	case theme.ColorNameHover:
-		return color.RGBA{R: 0x27, G: 0x27, B: 0x2a, A: 0xff} // #27272a Hover
+		return color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0x48} // Vibrant 28% white luminous overlay (noticeable highlight & crisp text)
 	case theme.ColorNameInputBackground:
 		return color.RGBA{R: 0x0a, G: 0x0a, B: 0x0c, A: 0xff} // #0a0a0c Inset Entry matching Stitch
 	case theme.ColorNameInputBorder:
 		return color.RGBA{R: 0x27, G: 0x27, B: 0x2a, A: 0xff} // #27272a Border
 	case theme.ColorNamePrimary:
-		return color.RGBA{R: 0x25, G: 0x63, B: 0xeb, A: 0xff} // #2563eb High-Contrast Royal Blue (WCAG AAA with white text)
+		return color.RGBA{R: 0x38, G: 0xbd, B: 0xf8, A: 0xff} // #38bdf8 Vibrant High-Contrast Sky Blue (light & crisp on dark canvas)
+	case theme.ColorNameSelection:
+		return color.RGBA{R: 0x38, G: 0xbd, B: 0xf8, A: 0x33} // Subtle Sky Blue selection
+	case theme.ColorNameFocus:
+		return color.RGBA{R: 0x38, G: 0xbd, B: 0xf8, A: 0x80} // Focus ring
 	case theme.ColorNameSuccess:
 		return color.RGBA{R: 0x10, G: 0xb9, B: 0x81, A: 0xff} // #10b981 Emerald
 	case theme.ColorNameWarning:

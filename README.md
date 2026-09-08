@@ -4,7 +4,7 @@
 [![Architecture](https://img.shields.io/badge/Architecture-Single%20Binary%20(%3C30MB)-success)](#architecture)
 [![Memory Footprint](https://img.shields.io/badge/Resident%20RAM-%3C50MB-blue)](#performance)
 [![License](https://img.shields.io/badge/License-Proprietary%20%2F%20Internal-red)](#)
-[![Status](https://img.shields.io/badge/State-Modules%201%20%26%202%20Complete%20(Gate%202%20Passed)-brightgreen)](#completed-features)
+[![Status](https://img.shields.io/badge/State-Modules%201%2C%202%20%26%203%20Complete%20(Gate%203%20Passed)-brightgreen)](#completed-features)
 
 **TokMan** is a self-contained, enterprise-grade AI orchestration gateway, traffic shaper, stateful stream filter, and capability pool router. Engineered in pure native Go, TokMan compiles into a **single, standalone static binary** (<30MB) that boots in under 50 milliseconds and consumes under 50MB resident RAM.
 
@@ -111,7 +111,14 @@ TokMan operates in two distinct verticals out of the same binary:
 - **Bounded Memory:** Automatic background eviction of stale client leaky buckets (`EvictStaleBuckets`).
 - **Canonical Capability Registry:** Single source of truth (`backend/registry/registry.go`) defining all 14 canonical capability pools and metadata notes.
 
-### 5. Dual-Vertical Native Desktop GUI (Fyne v2)
+### 5. Autonomous Supervisor Engine & 14-Pool Federation (Module 3 - Gate 3 Verified)
+- **Sub-40ms Hybrid Intent Classifier:** Two-tier classification combining Tier 0 lexical/regex heuristics (<1ms) with Tier 1 LLM 1-token arbitration prompt (<40ms deadline), dynamically routing prompts to `pool/agent-coding`, `pool/deep-reasoning`, `pool/web-research`, `pool/document-analysis`, or `pool/general`.
+- **Master 144-Model Capability Catalog:** Comprehensive mapping of 14 capability pools with 3-tier intra-pool model fallback arrays ($\text{Primary Tier} \rightarrow \text{Backup Tier 1} \rightarrow \text{Backup Tier 2}$, $4 \times 4 \times 4$ models per pool).
+- **Automated AST Security Critic Pass (`pool/security-tester`):** Inspects generated code for SQL injection, command execution, hardcoded keys, and unbounded reads with multi-turn refinement (`MAX_CRITIC_LOOPS=2`), early-exit on clean code, and security advisory tagging.
+- **Ephemeral Scratchpad Envelope:** Isolates multi-step classification, routing decisions, and critic warnings from client chat history.
+- **Live Orchestration Telemetry:** Emits real-time event updates and response headers (`X-Tokman-Pool`, `X-Tokman-Intent`, `X-Tokman-Classification-Ms`, `X-Tokman-Critic-Verdict`).
+
+### 6. Dual-Vertical Native Desktop GUI (Fyne v2)
 - Built-in multi-tab desktop dashboard:
   - **Endpoints Tab:** Active gateway status, listen port, and route inventory.
   - **Console Tab:** Interactive model inspector with detailed capability notes for all 14 canonical pools.
@@ -120,13 +127,12 @@ TokMan operates in two distinct verticals out of the same binary:
 
 ---
 
-## Roadmap & Upcoming Pipeline (Modules 3–8)
+## Roadmap & Upcoming Pipeline (Modules 4–8)
 
 The remaining modules are staged in `docs/modules/` and will be implemented progressively according to the gated development roadmap:
 
 | Module | Title | Primary Capabilities in the Pipeline |
 | :--- | :--- | :--- |
-| **Module 3** | **Autonomous Supervisor Engine (`pool/auto`)** | Sub-40ms intent classification engine, 14-pool federation (144 capability slots), tool DAG handoff state machine, secondary AST security review via `pool/security-tester`, live telemetry streaming. |
 | **Module 4** | **Local Search Grounding & Universal Chat Importer** | SearXNG native Go aggregator client with 1h memory cache, Universal Selective Chat Importer supporting 20+ archive formats (ChatGPT, Claude, TypingMind, LibreChat). |
 | **Module 5** | **Tri-Tier Chat Bastions & Deterministic Admin ChatOps** | Outbound Telegram, Discord, and WhatsApp bot connectors, zero-LLM host telemetry (`/proc/meminfo`, Go runtime, RPM gauges), ephemeral key injection, PIN-protected Safe Mode (<50MB RAM clamp). |
 | **Module 6** | **Deterministic Video Conductor & Multimedia Engines** | Single-worker FIFO channel queue, duration clamping (<=30s/<=60s), FFmpeg Ken Burns camera transformations (`zoompan`), Kokoro-82M TTS + Whisper alignment, headless Typst PDF & Marp slide rendering. |

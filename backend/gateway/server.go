@@ -25,6 +25,7 @@ import (
 	"tokman/backend/interceptor"
 	"tokman/backend/registry"
 	"tokman/backend/storage"
+	"tokman/backend/supervisor"
 	"tokman/backend/types"
 )
 
@@ -83,13 +84,14 @@ type ModelListResponse struct {
 
 // Config configures the Go HTTP Gateway server.
 type Config struct {
-	Port         int
-	MasterKey    string
-	GroqAPIKey   string
-	UpstreamURL  string // Optional override for testing (defaults to Groq API)
-	Cache        *storage.LRUCache
-	DB           *storage.DB
-	Interceptor  *interceptor.Interceptor
+	Port        int
+	MasterKey   string
+	GroqAPIKey  string
+	UpstreamURL string // Optional override for testing (defaults to Groq API)
+	Cache       *storage.LRUCache
+	DB          *storage.DB
+	Interceptor *interceptor.Interceptor
+	Supervisor  *supervisor.Supervisor
 }
 
 // Server is the native Gateway HTTP server.
@@ -101,6 +103,7 @@ type Server struct {
 	mu          sync.RWMutex
 	groqKey     string
 	Interceptor *interceptor.Interceptor
+	Supervisor  *supervisor.Supervisor
 }
 
 // NewServer initializes a new Gateway HTTP server instance.
@@ -119,11 +122,28 @@ func NewServer(cfg Config) *Server {
 		ic = interceptor.NewInterceptor(nil, nil)
 	}
 
+	sup := cfg.Supervisor
+	if sup == nil {
+		sup = supervisor.NewSupervisor(supervisor.SupervisorConfig{
+			ClassifierConfig: supervisor.ClassifierConfig{
+				UpstreamURL: cfg.UpstreamURL,
+				APIKey:      cfg.GroqAPIKey,
+				ForceTier0:  true, // Default to sub-1ms Tier 0 heuristics in standalone
+			},
+			CriticConfig: supervisor.CriticConfig{
+				MaxCriticLoops: 2,
+				Enabled:        true,
+			},
+			DefaultModel: "llama-3.3-70b-versatile",
+		})
+	}
+
 	s := &Server{
 		Config:      cfg,
 		startTime:   time.Now(),
 		groqKey:     cfg.GroqAPIKey,
 		Interceptor: ic,
+		Supervisor:  sup,
 	}
 
 	mux := http.NewServeMux()
@@ -320,24 +340,20 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Resolve capability pool to upstream model
-	// NOTE: Single upstream mapping (openai/gpt-oss-120b) is a Module 1/2 stub awaiting Module 3's 14-pool federation engine.
+	// Autonomous Supervisor and 14-Pool Federation Routing (Module 3)
 	requestedPool := req.Model
-	upstreamModel := req.Model
-	switch req.Model {
-	case "pool/general", "pool/auto":
-		upstreamModel = "openai/gpt-oss-120b"
-	case "pool/deep-reasoning":
-		upstreamModel = "openai/gpt-oss-120b"
-	case "pool/agent-coding", "pool/security-tester":
-		upstreamModel = "openai/gpt-oss-120b"
-	case "pool/document-analysis", "pool/architect", "pool/stack-optimizer", "pool/document-gen":
-		upstreamModel = "openai/gpt-oss-120b"
-	case "pool/web-research", "pool/presentation":
-		upstreamModel = "openai/gpt-oss-120b"
-	case "pool/image-gen", "pool/audio-gen", "pool/video-conductor":
-		upstreamModel = "openai/gpt-oss-120b"
+	var lastUserPrompt string
+	for i := len(req.Messages) - 1; i >= 0; i-- {
+		if req.Messages[i].Role == "user" {
+			lastUserPrompt = req.Messages[i].Content
+			break
+		}
 	}
+
+	reqID := fmt.Sprintf("tokman-%d", time.Now().UnixNano())
+	orch := s.Supervisor.RouteRequest(r.Context(), reqID, requestedPool, lastUserPrompt)
+	targetPool := orch.TargetPool
+	upstreamModel := supervisor.MapToGroqUpstream(orch.UpstreamModel)
 
 	cacheKey := s.computeCacheKey(requestedPool, req.Messages)
 
@@ -347,6 +363,9 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 			if respBytes, ok := cachedResp.([]byte); ok {
 				w.Header().Set("Content-Type", "application/json")
 				w.Header().Set("X-Cache", "HIT")
+				w.Header().Set("X-Tokman-Pool", targetPool)
+				w.Header().Set("X-Tokman-Intent", orch.Classification.Intent)
+				w.Header().Set("X-Tokman-Classification-Ms", strconv.FormatInt(orch.Classification.Latency.Milliseconds(), 10))
 				w.WriteHeader(http.StatusOK)
 				w.Write(respBytes)
 
@@ -404,6 +423,9 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
 		w.Header().Set("X-Cache", "MISS")
+		w.Header().Set("X-Tokman-Pool", targetPool)
+		w.Header().Set("X-Tokman-Intent", orch.Classification.Intent)
+		w.Header().Set("X-Tokman-Classification-Ms", strconv.FormatInt(orch.Classification.Latency.Milliseconds(), 10))
 		w.WriteHeader(upstreamResp.StatusCode)
 
 		flusher, ok := w.(http.Flusher)
@@ -436,13 +458,20 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Rewrite model identifier back to requested pool name in output and sanitize thinking tokens
+	// Rewrite model identifier back to requested pool name, apply security critic, and sanitize thinking tokens
 	if upstreamResp.StatusCode == http.StatusOK {
 		var completionResp ChatCompletionResponse
 		if err := json.Unmarshal(respBytes, &completionResp); err == nil {
 			completionResp.Model = requestedPool
 			for i := range completionResp.Choices {
-				completionResp.Choices[i].Message.Content = filter.SanitizeNonStreamingContent(completionResp.Choices[i].Message.Content)
+				sanitized := filter.SanitizeNonStreamingContent(completionResp.Choices[i].Message.Content)
+				revised, verdict := s.Supervisor.PerformSecurityCritic(r.Context(), orch.Scratchpad, sanitized)
+				completionResp.Choices[i].Message.Content = revised
+				if !verdict.IsClean {
+					w.Header().Set("X-Tokman-Critic-Verdict", "FLAGGED")
+				} else if verdict.Iterations > 0 {
+					w.Header().Set("X-Tokman-Critic-Verdict", "CLEAN")
+				}
 			}
 			if rewritten, err := json.Marshal(completionResp); err == nil {
 				respBytes = rewritten
@@ -470,6 +499,9 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
 	w.Header().Set("X-Cache", "MISS")
+	w.Header().Set("X-Tokman-Pool", targetPool)
+	w.Header().Set("X-Tokman-Intent", orch.Classification.Intent)
+	w.Header().Set("X-Tokman-Classification-Ms", strconv.FormatInt(orch.Classification.Latency.Milliseconds(), 10))
 	w.WriteHeader(upstreamResp.StatusCode)
 	w.Write(respBytes)
 }

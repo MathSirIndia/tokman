@@ -14,7 +14,7 @@ var CanonicalPools = []types.PoolInfo{
 		TargetModel: "Hierarchical Supervisor",
 		Provider:    "Two-Tier Arbitrator",
 		ContextMax:  "<40ms DAG",
-		Status:      "Staged (Module 3)",
+		Status:      "Active",
 		Description: "Frontline 5 intent classifier & mid-query tool handoff DAG",
 	},
 	{
@@ -32,7 +32,7 @@ var CanonicalPools = []types.PoolInfo{
 		TargetModel: "sambanova/deepseek-r1",
 		Provider:    "SambaNova / Cloudflare",
 		ContextMax:  "8,192 tkns",
-		Status:      "Staged (Module 3)",
+		Status:      "Active",
 		Description: "Complex logic, mathematical deduction & step-by-step reasoning",
 	},
 	{
@@ -41,7 +41,7 @@ var CanonicalPools = []types.PoolInfo{
 		TargetModel: "sambanova/qwen-2.5-coder",
 		Provider:    "SambaNova / Mistral / Groq",
 		ContextMax:  "8,192 tkns",
-		Status:      "Staged (Module 3)",
+		Status:      "Active",
 		Description: "Autonomous developer assistants, refactoring & code synthesis",
 	},
 	{
@@ -50,7 +50,7 @@ var CanonicalPools = []types.PoolInfo{
 		TargetModel: "gemini/gemini-2.0-flash",
 		Provider:    "Google AI Studio / Groq",
 		ContextMax:  "1,000,000 tkns",
-		Status:      "Staged (Module 3)",
+		Status:      "Active",
 		Description: "Massive context window ingestion & long-document reasoning",
 	},
 	{
@@ -95,7 +95,7 @@ var CanonicalPools = []types.PoolInfo{
 		TargetModel: "sambanova/qwen-coder",
 		Provider:    "SambaNova / Cloudflare",
 		ContextMax:  "8,192 tkns",
-		Status:      "Staged (Module 3)",
+		Status:      "Active",
 		Description: "Automated static analysis & vulnerability critic pass",
 	},
 	{
@@ -141,6 +141,17 @@ func CanonicalPoolNames() []string {
 	names := make([]string, len(CanonicalPools))
 	for i, p := range CanonicalPools {
 		names[i] = p.Name
+	}
+	return names
+}
+
+// ActivePoolNames returns a slice of currently active/routed capability pool identifiers.
+func ActivePoolNames() []string {
+	var names []string
+	for _, p := range CanonicalPools {
+		if p.Status == "Active" {
+			names = append(names, p.Name)
+		}
 	}
 	return names
 }

@@ -51,6 +51,9 @@ case "$MODE" in
                 2)
                     $GOTEST ./backend/filter ./backend/shaper ./backend/interceptor -v
                     ;;
+                3)
+                    $GOTEST ./backend/supervisor ./backend/gateway -v
+                    ;;
                 *)
                     $GOTEST ./backend/... -run "Module${MODULE_NUM}" -v || true
                     ;;

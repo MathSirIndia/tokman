@@ -33,6 +33,7 @@ switch ($Mode) {
         switch ($Module) {
             "1" { go test ./backend/gateway ./backend/storage -v }
             "2" { go test ./backend/filter ./backend/shaper ./backend/interceptor -v }
+            "3" { go test ./backend/supervisor ./backend/gateway -v }
             default { go test ./backend/... -run "Module$Module" -v }
         }
         Write-Host "--> Running Mock Upstream Verification..."
