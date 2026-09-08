@@ -22,7 +22,7 @@ const (
 // RateLimitQuota defines maximum requests and tokens per minute for a tier.
 type RateLimitQuota struct {
 	RPM int
-	TPM int
+	TPM int // Reserved for token-budget enforcement (Module 7)
 }
 
 // DefaultQuotas maps priority tiers to default fair-share limits.
@@ -40,10 +40,11 @@ type ClientBucket struct {
 
 // LeakyBucketLimiter enforces P0–P3 fair-share rate limits per client identity.
 type LeakyBucketLimiter struct {
-	mu      sync.Mutex
-	quotas  map[PriorityClass]RateLimitQuota
-	buckets map[string]*ClientBucket
-	window  time.Duration
+	mu           sync.Mutex
+	quotas       map[PriorityClass]RateLimitQuota
+	buckets      map[string]*ClientBucket
+	window       time.Duration
+	lastEviction time.Time
 }
 
 // NewLeakyBucketLimiter initializes a rate limiter with a sliding 60-second window.
@@ -57,20 +58,36 @@ func NewLeakyBucketLimiter(customQuotas map[PriorityClass]RateLimitQuota) *Leaky
 	}
 
 	return &LeakyBucketLimiter{
-		quotas:  quotas,
-		buckets: make(map[string]*ClientBucket),
-		window:  60 * time.Second,
+		quotas:       quotas,
+		buckets:      make(map[string]*ClientBucket),
+		window:       60 * time.Second,
+		lastEviction: time.Now(),
 	}
 }
 
 // ResolveIdentity extracts the canonical client identifier and priority class from an HTTP request.
+// Security: Priority is resolved server-side from X-Channel or trusted internal mesh contexts (SEC-5).
 func ResolveIdentity(r *http.Request) (string, PriorityClass) {
 	priority := PriorityP0
-	if pHeader := r.Header.Get("X-Priority"); pHeader != "" {
-		pUpper := PriorityClass(strings.ToUpper(strings.TrimSpace(pHeader)))
-		switch pUpper {
-		case PriorityP0, PriorityP1, PriorityP2, PriorityP3:
-			priority = pUpper
+
+	channel := strings.ToLower(strings.TrimSpace(r.Header.Get("X-Channel")))
+	switch channel {
+	case "ide", "cursor", "aider", "vscode", "agent":
+		priority = PriorityP1
+	case "research", "deep-reasoning":
+		priority = PriorityP2
+	case "media", "conductor", "bulk":
+		priority = PriorityP3
+	default:
+		// Direct X-Priority override is restricted strictly to internal mesh callers
+		if r.Header.Get("X-Tokman-Internal") == "true" {
+			if pHeader := r.Header.Get("X-Priority"); pHeader != "" {
+				pUpper := PriorityClass(strings.ToUpper(strings.TrimSpace(pHeader)))
+				switch pUpper {
+				case PriorityP0, PriorityP1, PriorityP2, PriorityP3:
+					priority = pUpper
+				}
+			}
 		}
 	}
 
@@ -114,6 +131,14 @@ func (l *LeakyBucketLimiter) Allow(identity string, priority PriorityClass) Rate
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
+	now := time.Now()
+
+	// Periodic stale bucket cleanup (BP-1: prevents unbounded memory growth)
+	if now.Sub(l.lastEviction) >= l.window || len(l.buckets) >= 500 {
+		l.evictStaleLocked(now)
+		l.lastEviction = now
+	}
+
 	quota, exists := l.quotas[priority]
 	if !exists {
 		quota = DefaultQuotas[PriorityP0]
@@ -126,7 +151,6 @@ func (l *LeakyBucketLimiter) Allow(identity string, priority PriorityClass) Rate
 		l.buckets[key] = bucket
 	}
 
-	now := time.Now()
 	cutoff := now.Add(-l.window)
 
 	// Filter out expired timestamps
@@ -167,6 +191,41 @@ func (l *LeakyBucketLimiter) Allow(identity string, priority PriorityClass) Rate
 		Priority:   priority,
 		Identity:   identity,
 	}
+}
+
+// evictStaleLocked removes buckets that have no active timestamps within the sliding window.
+// Caller must hold l.mu.
+func (l *LeakyBucketLimiter) evictStaleLocked(now time.Time) int {
+	cutoff := now.Add(-l.window)
+	evicted := 0
+	for key, b := range l.buckets {
+		valid := b.Timestamps[:0]
+		for _, t := range b.Timestamps {
+			if t.After(cutoff) {
+				valid = append(valid, t)
+			}
+		}
+		b.Timestamps = valid
+		if len(b.Timestamps) == 0 {
+			delete(l.buckets, key)
+			evicted++
+		}
+	}
+	return evicted
+}
+
+// EvictStaleBuckets triggers eviction of expired buckets and returns the count of purged entries.
+func (l *LeakyBucketLimiter) EvictStaleBuckets(now time.Time) int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.evictStaleLocked(now)
+}
+
+// BucketCount returns the current count of allocated buckets.
+func (l *LeakyBucketLimiter) BucketCount() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return len(l.buckets)
 }
 
 // Reset clears recorded request buckets (useful for tests).

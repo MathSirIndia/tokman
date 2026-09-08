@@ -86,22 +86,12 @@ func (a *AppUI) buildCacheTab() fyne.CanvasObject {
 	// =========================================================================
 	// 3. Entry Detail Inspector (Stitch Screen 3)
 	// =========================================================================
-	a.inspectorLabel = widget.NewLabelWithStyle(`Prompt Hash (SHA-256):
-9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08
-
-Payload (Cached Response):
-{
-  "id": "chatcmpl-78f9a2b1...",
-  "object": "chat.completion",
-  "created": 1715095331,
-  "model": "gpt-4-turbo-local",
-  "choices": [{"message": {"role": "assistant", "content": "LRU cache eviction is a memory management strategy where the system discards the least recently accessed items first..."}}]
-}`, fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
+	a.inspectorLabel = widget.NewLabelWithStyle("Select a ledger entry above to inspect cached payload details.", fyne.TextAlignLeading, fyne.TextStyle{Monospace: true})
 
 	inspectorCard := createStitchCard(
 		"Entry Detail Inspector",
 		theme.InfoIcon(),
-		widget.NewLabelWithStyle("TTL: 3599s | Size: 2.4 KB", fyne.TextAlignTrailing, fyne.TextStyle{Monospace: true, Italic: true}),
+		widget.NewLabelWithStyle("Awaiting selection", fyne.TextAlignTrailing, fyne.TextStyle{Monospace: true, Italic: true}),
 		createInsetBox(a.inspectorLabel),
 	)
 

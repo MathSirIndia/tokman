@@ -9,6 +9,8 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+
+	"tokman/backend/config"
 )
 
 func (a *AppUI) buildSettingsTab() fyne.CanvasObject {
@@ -172,7 +174,7 @@ func (a *AppUI) buildSettingsTab() fyne.CanvasObject {
 	saveBtn.Importance = widget.HighImportance
 
 	reloadBtn := widget.NewButtonWithIcon("Reload .env File", theme.ViewRefreshIcon(), func() {
-		loadDotEnv(".env")
+		config.LoadDotEnv(".env")
 		dialog.ShowInformation(".env Reloaded", "Environment variables reloaded from .env file.", a.window)
 	})
 	reloadBtn.Importance = widget.LowImportance

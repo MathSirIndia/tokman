@@ -1,4 +1,4 @@
-# Windows PowerShell Automated Test Runner for TokMan Gateway Mesh
+# Windows PowerShell Automated Test Runner for TokMan - Ultimate AI Orchestration
 param(
     [string]$Mode = "--unit",
     [string]$Module = "1"
@@ -6,12 +6,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "================================================================="
-Write-Host "   DISTRIBUTED AI GATEWAY MESH: AUTOMATED TEST RUNNER (POWERSHELL)"
-Write-Host "================================================================="
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$RootDir = Split-Path -Parent $ScriptDir
+Set-Location $RootDir
 
-$rootDir = Split-Path -Parent $PSScriptRoot
-Set-Location $rootDir
+Write-Host "================================================================="
+Write-Host "   TOKMAN - ULTIMATE AI ORCHESTRATION: AUTOMATED TEST RUNNER     "
+Write-Host "================================================================="
 
 if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
     Write-Error "Go toolchain not found in PATH. Please install Go from https://go.dev/dl/."

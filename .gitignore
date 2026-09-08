@@ -29,3 +29,24 @@ data/logs/
 .DS_Store
 Thumbs.db
 
+# Scratch & Temporary Logs
+scratch/
+*.log
+*.tmp
+
+# Python & Test Artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+coverage.xml
+coverage.out
+*.test
+
+# IDE & Editor Settings
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+

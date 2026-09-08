@@ -1,8 +1,8 @@
-# Distributed AI Gateway Mesh: Master Engineering Roadmap
+# TokMan - Ultimate AI Orchestration: Master Engineering Roadmap
 
 ## 1. Executive Summary & Vision
 
-The **Distributed AI Gateway Mesh** is an autonomous, self-healing, zero-trust private AI cluster engineered to aggregate, arbitrate, and federate free-tier LLM endpoints, meta-search grounding, multimodal synthesis, and media production across consumer edge hardware and cloud hyperscalers.
+**TokMan - Ultimate AI Orchestration** is an autonomous, self-healing, zero-trust private AI cluster engineered to aggregate, arbitrate, and federate free-tier LLM endpoints, meta-search grounding, multimodal synthesis, and media production across consumer edge hardware and cloud hyperscalers.
 
 This roadmap provides a complete, 1:1 mapping of all 20 architectural sections from [docs/report.md](file:///home/gamers/dev/tokman/docs/report.md) into 8 self-contained, testable engineering modules. Every capability pool, service, security rule, and hardware profile is accounted for.
 
@@ -35,11 +35,11 @@ This roadmap provides a complete, 1:1 mapping of all 20 architectural sections f
 
 ---
 
-## 3. Architectural Dependency & Execution Flow (Wails Single-Binary Production)
+## 3. Architectural Dependency & Execution Flow (Native Go Single-Binary Production)
 
 ```text
 [Module 1: Core Go Gateway, Routing & Embedded Persistence]
-       │ (Wails v2 Runtime, Go HTTP Gateway :8000, Embedded SQLite & LRU Cache)
+       │ (Native Fyne v2 GUI, Go HTTP Gateway :8000, Embedded SQLite & LRU Cache)
        ▼
 [Module 2: Native Go Stream Filter & Traffic Shaper]
        │ (Stateful <think> SSE Stream Sanitizer, P0–P3 Leaky Bucket, Jitter, Pruning)
@@ -48,13 +48,13 @@ This roadmap provides a complete, 1:1 mapping of all 20 architectural sections f
        │ (Sub-40ms Intent Classifier, 144 Model Slots, Tool DAG Handoff, Critic Loop)
        │
        ├──► [Module 4: Search Grounding & Universal WebUI]
-       │           │ (Embedded Wails UI Dashboard, In-Browser Universal Importer, SearXNG)
+       │           │ (Native Fyne GUI Dashboard & Stitch Web Admin, In-Browser Universal Importer, SearXNG)
        │           ▼
        │    [Module 5: Tri-Tier Chat Bastions & Admin ChatOps]
        │           │ (Outbound Telegram/WA/Discord Bastions, 0-Token Admin Menu, Safe Mode)
        │           ▼
        │    [Module 7: Stack Optimizer & Embedded Observability]
-       │             (Embedded Spend Telemetry, SQLite Proposals, Real-time Wails UI Gauges)
+       │             (Embedded Spend Telemetry, SQLite Proposals, Real-time GUI Gauges)
        │
        └──► [Module 6: Video Conductor & Artifact Engines]
                    │ (FIFO Channel, Flux.1 + Kokoro + Whisper + FFmpeg Ken Burns, Typst, Marp)
@@ -65,37 +65,38 @@ This roadmap provides a complete, 1:1 mapping of all 20 architectural sections f
 
 ---
 
-## 4. Master Repository Directory Structure (Wails Production Architecture)
+## 4. Master Repository Directory Structure (Native Go Production Architecture)
 
 ```text
 tokman/
 ├── .env                          # Local secrets & API keys (git-ignored)
 ├── .env.example                  # Template environment variables
 ├── .gitignore                    # Git ignore rules for data, keys, and caches
-├── wails.json                    # Wails project manifest & build configuration
-├── main.go                       # Wails application entrypoint & runtime wiring
-├── app.go                        # Wails IPC bridge methods (UI <-> Go backend)
+├── compose.yml                   # Enterprise Cluster Profile reference configuration
+├── main.go                       # Standalone application entrypoint (CLI daemon or GUI launch)
 │
 ├── backend/                      # Production Go Backend Core
-│   ├── gateway/                  # High-performance HTTP reverse proxy (:8000), /v1/chat/completions, pools
+│   ├── config/                   # Configuration & environment loaders (dotenv.go)
+│   ├── gateway/                  # High-performance HTTP reverse proxy (:8000), /v1/chat/completions
 │   ├── filter/                   # Stateful <think> SSE stream sanitizer, dynamic context pruner
-│   ├── shaper/                   # P0-P3 leaky-bucket rate limiter, jitter, 80% headroom check
+│   ├── registry/                 # Centralized 14-capability pool & model catalog (Single Source of Truth)
+│   ├── shaper/                   # P0-P3 leaky-bucket rate limiter, domain jitter engine
 │   ├── supervisor/               # Sub-40ms intent classifier, DAG handoff, critic loop
 │   ├── storage/                  # Embedded pure-Go SQLite persistence, LRU completion cache
+│   ├── types/                    # Shared core domain types (ChatMessage, PoolInfo)
 │   ├── bastion/                  # ChatOps mobile control plane, 0-token admin menu, Telegram bot
 │   ├── conductor/                # FIFO media queue, FFmpeg Ken Burns runner, Typst/Marp pipeline
 │   ├── optimizer/                # 7-day token burn analyzer, non-destructive proposal engine
 │   └── search/                   # SearXNG client & web grounding provider
 │
-├── frontend/                     # Wails Embedded Web UI (Vite + Vanilla JS / CSS)
-│   ├── package.json              # Frontend dependencies
-│   ├── index.html                # Single-page dashboard entrypoint
-│   ├── src/
-│   │   ├── main.js               # UI logic, Wails runtime bindings
-│   │   ├── style.css             # Rich dark-mode aesthetics, responsive layouts
-│   │   ├── components/           # Telemetry gauges, chat playground, pool selector
-│   │   └── importer.js           # Universal client-side selective chat importer (20+ formats)
-│   └── dist/                     # Compiled UI bundle embedded into single binary
+├── gui/                          # Pure Native Desktop GUI (Fyne v2, Stitch Theme & 4 Master Tabs)
+│   ├── app.go                    # GUI runtime lifecycle, window orchestration & tab assembly
+│   ├── theme.go                  # Authentic Stitch-compliant dark theme tokens & font typography
+│   ├── tab_dashboard.go          # System overview, cluster health, and real-time activity
+│   ├── tab_endpoints.go          # Master 14-pool service catalog & provider endpoint routing
+│   ├── tab_console.go            # Interactive chat playground, model selector & latency inspector
+│   ├── tab_cache.go              # In-memory LRU completion cache ledger & key inspector
+│   └── tab_settings.go           # Local network binding, security keys & live .env reload
 │
 ├── docs/                         # Project architecture, planning & tracking docs
 │   ├── report.md                 # Architectural Master Specification (GFM)

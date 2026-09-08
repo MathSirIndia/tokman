@@ -5,13 +5,16 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/subtle"
 	_ "embed"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -20,32 +23,16 @@ import (
 
 	"tokman/backend/filter"
 	"tokman/backend/interceptor"
+	"tokman/backend/registry"
 	"tokman/backend/storage"
+	"tokman/backend/types"
 )
 
-// CanonicalPools defines the 14 capability pools from docs/report.md
-var CanonicalPools = []string{
-	"pool/auto",
-	"pool/general",
-	"pool/deep-reasoning",
-	"pool/agent-coding",
-	"pool/document-analysis",
-	"pool/web-research",
-	"pool/presentation",
-	"pool/image-gen",
-	"pool/architect",
-	"pool/security-tester",
-	"pool/stack-optimizer",
-	"pool/document-gen",
-	"pool/audio-gen",
-	"pool/video-conductor",
-}
+// CanonicalPools defines the 14 capability pools derived from the centralized registry (BL-1).
+var CanonicalPools = registry.CanonicalPoolNames()
 
-// ChatMessage represents a single turn in a chat conversation.
-type ChatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
+// ChatMessage represents a single turn in a chat conversation (aliased to types.ChatMessage, BP-4).
+type ChatMessage = types.ChatMessage
 
 // ChatCompletionRequest represents an OpenAI-compatible request payload.
 type ChatCompletionRequest struct {
@@ -201,11 +188,36 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return s.httpServer.Shutdown(ctx)
 }
 
+func isAllowedOrigin(origin string) bool {
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+	host := u.Hostname()
+	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+		return true
+	}
+	if allowed := os.Getenv("CORS_ALLOWED_ORIGINS"); allowed != "" {
+		for _, o := range strings.Split(allowed, ",") {
+			trimmed := strings.TrimSpace(o)
+			if trimmed == origin || trimmed == host {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+		if origin != "" && isAllowedOrigin(origin) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Master-Key")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Master-Key, X-Channel, X-Priority, X-User-Id, X-Telegram-Chat-Id, X-Discord-User-Id, X-Tokman-Internal")
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
@@ -250,7 +262,7 @@ func (s *Server) handleModels(w http.ResponseWriter, r *http.Request) {
 			ID:      id,
 			Object:  "model",
 			Created: s.startTime.Unix(),
-			OwnedBy: "tokman-mesh",
+			OwnedBy: "tokman-orchestration",
 		})
 	}
 
@@ -268,11 +280,13 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify Authorization header if MasterKey is set
+	// Verify Authorization header if MasterKey is set (SEC-2: constant-time comparison)
 	if s.Config.MasterKey != "" {
 		auth := r.Header.Get("Authorization")
-		expected := "Bearer " + s.Config.MasterKey
-		if auth != expected && auth != s.Config.MasterKey {
+		expectedBearer := "Bearer " + s.Config.MasterKey
+		matchBearer := subtle.ConstantTimeCompare([]byte(auth), []byte(expectedBearer)) == 1
+		matchRaw := subtle.ConstantTimeCompare([]byte(auth), []byte(s.Config.MasterKey)) == 1
+		if !matchBearer && !matchRaw {
 			http.Error(w, `{"error": "Unauthorized"}`, http.StatusUnauthorized)
 			return
 		}
@@ -280,15 +294,16 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 
 	// Rate limiting & identity evaluation
 	if s.Interceptor != nil {
-		_, _, allowed := s.Interceptor.InterceptRequest(w, r)
-		if !allowed {
+		if !s.Interceptor.InterceptRequest(w, r) {
 			return
 		}
 	}
 
+	// SEC-3: Enforce 10MB maximum request body size to protect against memory exhaustion DoS
+	r.Body = http.MaxBytesReader(w, r.Body, 10*1024*1024)
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, `{"error": "Failed to read request body"}`, http.StatusBadRequest)
+		http.Error(w, `{"error": "Request body exceeds maximum size (10MB) or read failed"}`, http.StatusRequestEntityTooLarge)
 		return
 	}
 
@@ -306,6 +321,7 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Resolve capability pool to upstream model
+	// NOTE: Single upstream mapping (openai/gpt-oss-120b) is a Module 1/2 stub awaiting Module 3's 14-pool federation engine.
 	requestedPool := req.Model
 	upstreamModel := req.Model
 	switch req.Model {
@@ -376,7 +392,8 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{Timeout: 60 * time.Second}
 	upstreamResp, err := client.Do(upstreamReq)
 	if err != nil {
-		http.Error(w, fmt.Sprintf(`{"error": "Upstream error: %s"}`, maskSensitiveCredentials(err.Error())), http.StatusBadGateway)
+		log.Printf("[GATEWAY ERROR] Upstream dispatch failed: %s", maskSensitiveCredentials(err.Error()))
+		http.Error(w, `{"error": "Upstream service error", "code": "upstream_unavailable"}`, http.StatusBadGateway)
 		return
 	}
 	defer upstreamResp.Body.Close()
@@ -414,7 +431,8 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	// Read full non-streaming response
 	respBytes, err := io.ReadAll(upstreamResp.Body)
 	if err != nil {
-		http.Error(w, fmt.Sprintf(`{"error": "Failed to read upstream response: %s"}`, maskSensitiveCredentials(err.Error())), http.StatusBadGateway)
+		log.Printf("[GATEWAY ERROR] Failed to read upstream response: %s", maskSensitiveCredentials(err.Error()))
+		http.Error(w, `{"error": "Failed to read upstream response", "code": "upstream_read_error"}`, http.StatusBadGateway)
 		return
 	}
 

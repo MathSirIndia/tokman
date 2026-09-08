@@ -10,6 +10,9 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+
+	"tokman/backend/registry"
+	"tokman/backend/types"
 )
 
 type ServicePortal struct {
@@ -127,145 +130,11 @@ func getMeshPortals() []ServicePortal {
 	}
 }
 
-type PoolInfo struct {
-	Name        string
-	Tier        string
-	TargetModel string
-	Provider    string
-	ContextMax  string
-	Status      string
-	Description string
-}
+// PoolInfo is aliased to types.PoolInfo
+type PoolInfo = types.PoolInfo
 
-// capabilityPools implements the Master 14-Pool Architecture from docs/report.md Section 5
-var capabilityPools = []PoolInfo{
-	{
-		Name:        "pool/auto",
-		Tier:        "Meta-Orchestrator",
-		TargetModel: "Hierarchical Supervisor",
-		Provider:    "Two-Tier Arbitrator",
-		ContextMax:  "<40ms DAG",
-		Status:      "Staged (Module 3)",
-		Description: "Frontline 5 intent classifier & mid-query tool handoff DAG",
-	},
-	{
-		Name:        "pool/general",
-		Tier:        "Frontline Core",
-		TargetModel: "groq/llama-3.3-70b",
-		Provider:    "Groq / GitHub / CF",
-		ContextMax:  "8,192 tkns",
-		Status:      "Active",
-		Description: "Balanced daily tasks, summarization & flagship routing",
-	},
-	{
-		Name:        "pool/deep-reasoning",
-		Tier:        "Frontline Core",
-		TargetModel: "sambanova/deepseek-r1",
-		Provider:    "SambaNova / Cloudflare",
-		ContextMax:  "8,192 tkns",
-		Status:      "Staged (Module 3)",
-		Description: "Complex logic, mathematical deduction & step-by-step reasoning",
-	},
-	{
-		Name:        "pool/agent-coding",
-		Tier:        "Frontline Core",
-		TargetModel: "sambanova/qwen-2.5-coder",
-		Provider:    "SambaNova / Mistral / Groq",
-		ContextMax:  "8,192 tkns",
-		Status:      "Staged (Module 3)",
-		Description: "Autonomous developer assistants, refactoring & code synthesis",
-	},
-	{
-		Name:        "pool/document-analysis",
-		Tier:        "Frontline Core",
-		TargetModel: "gemini/gemini-2.0-flash",
-		Provider:    "Google AI Studio / Groq",
-		ContextMax:  "1,000,000 tkns",
-		Status:      "Staged (Module 3)",
-		Description: "Massive context window ingestion & long-document reasoning",
-	},
-	{
-		Name:        "pool/web-research",
-		Tier:        "Frontline Core",
-		TargetModel: "cerebras/llama-3.3-70b",
-		Provider:    "Cerebras / SearXNG",
-		ContextMax:  "8,192 tkns",
-		Status:      "Staged (Module 4)",
-		Description: "Live internet grounding & multi-source web synthesis",
-	},
-	{
-		Name:        "pool/presentation",
-		Tier:        "Artifact Engine",
-		TargetModel: "groq/llama-3.3-70b",
-		Provider:    "Groq / Headless Marp",
-		ContextMax:  "8,192 tkns",
-		Status:      "Staged (Module 6)",
-		Description: "Headless Marp & Reveal.js presentation deck generation",
-	},
-	{
-		Name:        "pool/image-gen",
-		Tier:        "Artifact Engine",
-		TargetModel: "cf/flux-1-schnell",
-		Provider:    "Cloudflare / HF SDXL",
-		ContextMax:  "1080p Image",
-		Status:      "Staged (Module 6)",
-		Description: "High-speed diffusion image synthesis & anchor keyframes",
-	},
-	{
-		Name:        "pool/architect",
-		Tier:        "Conductor Planner",
-		TargetModel: "gemini/gemini-2.0-flash",
-		Provider:    "Google AI Studio",
-		ContextMax:  "32,768 tkns",
-		Status:      "Staged (Module 6)",
-		Description: "Multi-modal scene graph generation & production planning",
-	},
-	{
-		Name:        "pool/security-tester",
-		Tier:        "Critic Loop Pass",
-		TargetModel: "sambanova/qwen-coder",
-		Provider:    "SambaNova / Mistral",
-		ContextMax:  "8,192 tkns",
-		Status:      "Staged (Module 5)",
-		Description: "AST static analysis, prompt injection check & safety validation",
-	},
-	{
-		Name:        "pool/stack-optimizer",
-		Tier:        "Zero-Touch Daemon",
-		TargetModel: "gemini/gemini-2.0-flash",
-		Provider:    "Google AI / Cerebras",
-		ContextMax:  "8,192 tkns",
-		Status:      "Staged (Module 7)",
-		Description: "7-day token burn telemetry analyzer & proposal staging",
-	},
-	{
-		Name:        "pool/document-gen",
-		Tier:        "Artifact Engine",
-		TargetModel: "gemini/gemini-2.0-flash",
-		Provider:    "Typst Rust / Pandoc",
-		ContextMax:  "Publication PDF",
-		Status:      "Staged (Module 6)",
-		Description: "Publication-grade PDF reports via Typst compiler",
-	},
-	{
-		Name:        "pool/audio-gen",
-		Tier:        "Artifact Engine",
-		TargetModel: "cf/openai-whisper",
-		Provider:    "Kokoro-82M / Whisper",
-		ContextMax:  "Native Audio",
-		Status:      "Staged (Module 6)",
-		Description: "Kokoro-82M TTS narration & Whisper STT audio transcription",
-	},
-	{
-		Name:        "pool/video-conductor",
-		Tier:        "Meta-Orchestrator",
-		TargetModel: "FIFO Pipeline Orchestrator",
-		Provider:    "Deterministic FFmpeg",
-		ContextMax:  "<=30s (60s Long)",
-		Status:      "Staged (Module 6)",
-		Description: "Synthesizes Flux frames + TTS + Whisper + Ken Burns transforms",
-	},
-}
+// capabilityPools derives from the centralized CanonicalPools registry (BL-1)
+var capabilityPools = registry.CanonicalPools
 
 type EndpointItem struct {
 	Method      string

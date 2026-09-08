@@ -28,49 +28,35 @@ type AppUI struct {
 	startTime time.Time
 
 	tabs                *container.AppTabs
-	consolePoolSelect   *widget.Select
-	consolePromptEntry  *widget.Entry
-	consoleTargetNote   *widget.Label
-	consoleRawJsonEntry *widget.Entry
+	dashboardTab        *container.TabItem
+	endpointsTab        *container.TabItem
+	consoleTab          *container.TabItem
+	cacheTab            *container.TabItem
+	settingsTab         *container.TabItem
+	systemHealthTab     *container.TabItem
+	apiDocumentationTab *container.TabItem
 
-	cacheHitRatioLabel  *widget.Label
-	cacheEntriesLabel   *widget.Label
-	cacheSavedLabel     *widget.Label
+	consolePromptEntry  *widget.Entry
+	consoleRawJsonEntry *widget.Entry
+	consolePoolSelect   *widget.Select
+	consoleTargetNote   *widget.Label
+
 	ledgerListContainer *fyne.Container
 	inspectorLabel      *widget.Label
+
+	cacheHitRatioLabel *widget.Label
+	cacheEntriesLabel  *widget.Label
+	cacheSavedLabel    *widget.Label
 
 	statusBarLabel *widget.Label
 }
 
-func loadDotEnv(filepath string) {
-	data, err := os.ReadFile(filepath)
-	if err != nil {
-		return
-	}
-	lines := strings.Split(string(data), "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		parts := strings.SplitN(line, "=", 2)
-		if len(parts) == 2 {
-			key := strings.TrimSpace(parts[0])
-			val := strings.TrimSpace(parts[1])
-			val = strings.Trim(val, "\"'")
-			if os.Getenv(key) == "" {
-				os.Setenv(key, val)
-			}
-		}
-	}
-}
-
 // Run initializes and executes the Fyne native desktop GUI
 func Run(gwServer *gateway.Server, db *storage.DB, cache *storage.LRUCache, initialTab int) {
-	fyneApp := app.NewWithID("com.tokman.mesh")
+	fyneApp := app.NewWithID("com.tokman.orchestration")
 	fyneApp.Settings().SetTheme(&TokmanTheme{})
 
-	window := fyneApp.NewWindow("TokMan AI Gateway Mesh — Local Node")
+	window := fyneApp.NewWindow("TokMan - Ultimate AI Orchestration — Local Node")
 	window.Resize(fyne.NewSize(1340, 980))
 	window.CenterOnScreen()
 

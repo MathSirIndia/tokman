@@ -1,3 +1,12 @@
+# ==============================================================================
+# TOKMAN - ULTIMATE AI ORCHESTRATION: ENTERPRISE CLUSTER PROFILE (REFERENCE)
+# ==============================================================================
+# NOTE: The canonical production deployment for TokMan is the single native Go
+# binary (`tokman`), requiring < 50MB RAM and zero external container dependencies.
+# This Docker Compose stack represents the multi-container Enterprise Cluster Profile
+# documented in `docs/report.md` §1 for distributed multi-node orchestrations.
+# ==============================================================================
+
 services:
   # ==============================================================================
   # 1. CORE ROUTING & RUNTIME LAYER

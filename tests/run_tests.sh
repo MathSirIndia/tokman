@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "================================================================="
-echo "   DISTRIBUTED AI GATEWAY MESH: AUTOMATED TEST RUNNER           "
+echo "   TOKMAN - ULTIMATE AI ORCHESTRATION: AUTOMATED TEST RUNNER     "
 echo "================================================================="
 
 cd "$ROOT_DIR"

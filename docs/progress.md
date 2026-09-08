@@ -1,12 +1,12 @@
-# Distributed AI Gateway Mesh: Progress & Gap Tracker
+# TokMan - Ultimate AI Orchestration: Progress & Gap Tracker
 
 ## 1. Executive Status Dashboard
 
 | Metric | Current State |
 | :--- | :--- |
-| **Current Phase** | **Module 2: Native Go Stream Filter, Traffic Shaper & Context Guard (100% Complete & Verified)** |
-| **Global Progress** | **62.5%** (Modules 0, 1 & 2 Complete, Automated Testing Framework 100% Implemented, Fyne Native GUI & Stitch Web Admin Synced, Gate 2 Passed) |
-| **Active Target** | Pure Native Go Binary (`tokman`): Go Gateway + Embedded SQLite/Cache + Fyne v2 Native GUI |
+| **Current Phase** | **Pre-Module 3 Hardening & Audit Remediation (100% Complete & Verified)** |
+| **Global Progress** | **65.0%** (Modules 0, 1 & 2 Complete, Audit Remediation & Security Hardening 100% Implemented, Testing Framework Active, 29MB Standalone Binary Verified, Gate 2 Passed) |
+| **Active Target** | Pure Native Go Binary (`tokman`): Go Gateway + Embedded SQLite/Cache + Fyne v2 Native GUI + Canonical Registry |
 | **Execution Mode** | Module-by-module development with automated tests & manual verification gates |
 | **Target Runtime** | **Single Standalone Production Binary** (Pure Go + Fyne Desktop Window + CLI Daemon) |
 | **Architectural Specifications** | [8 Detailed Module Specs in `docs/modules/`](file:///home/gamers/dev/tokman/docs/modules/) |
@@ -52,6 +52,25 @@
 - [x] Implement inter-request delay floor (>=150ms) and randomized jitter (`backend/shaper/jitter.go`)
 - [x] Create automated verification tests (`tests/e2e/module2_test.go`, `backend/interceptor/middleware_test.go`, `backend/filter/*_test.go`, `backend/shaper/*_test.go`)
 - [x] **Manual Verification Gate 2:** Transparent proxying, streaming `<think>` tags sanitized on the fly, 429 returned on limit overflow with `Retry-After` header, context pruned.
+
+### Foundational Hardening & Audit Remediation (Post-Module 2)
+*Status: COMPLETED & VERIFIED*
+
+- [x] **SEC-1 (CORS Policy Hardening):** Restrict wildcard CORS to `localhost:*`, `127.0.0.1:*`, `[::1]:*`, and `CORS_ALLOWED_ORIGINS` with `Vary: Origin`
+- [x] **SEC-2 (Timing Side-Channel Protection):** Master key comparison hardened with `crypto/subtle.ConstantTimeCompare`
+- [x] **SEC-3 (Request Entity Cap):** Wrap request body in `http.MaxBytesReader` (10MB limit, HTTP 413 on overflow)
+- [x] **SEC-4 (Upstream Error Masking):** Return sanitized generic JSON errors to client while logging masked credentials/internals server-side
+- [x] **SEC-5 (Fair-Share Rate Limit Enforcement):** Map priority classes server-side from `X-Channel` (`ide`/`cursor` -> P1, `research` -> P2, `media` -> P3, default -> P0); block untrusted `X-Priority` overrides unless `X-Tokman-Internal: true`
+- [x] **BP-1 (Bounded Memory in Rate Limiter):** Implement `EvictStaleBuckets(now)` and automated eviction in `Allow`
+- [x] **BP-2 (Isolated Jitter Randomness):** Seed and store local `*rand.Rand` instance inside `DomainJitterEngine`
+- [x] **BP-3 (Shared .env Loader):** Consolidate `loadDotEnv` into shared `backend/config/dotenv.go`
+- [x] **BP-4 (Unified ChatMessage Type):** Define canonical `types.ChatMessage` in `backend/types` and alias across packages
+- [x] **BL-1 (Central Capability Registry):** Move 14 canonical capability pools and metadata into `backend/registry/registry.go` as single source of truth
+- [x] **BL-2 (Dynamic Pool Target Lookup):** Replace 30-case switch in `tab_console.go` with `registry.GetTargetModelNote(s)`
+- [x] **BP-5 & BP-6 (Dead Code & Signature Simplification):** Remove unused `ReplaceRequestBody` and simplify `InterceptRequest` to return `bool`
+- [x] **BP-7 (Neutral UI Placeholders):** Replace fake mock JSON in `tab_cache.go` with clean neutral placeholder copy
+- [x] **Legacy Python Archiving:** Move pre-migration Python tests to `tests/legacy_python/` with explanatory documentation
+- [x] **Branding & Nomenclature Alignment:** Rebrand to "TokMan - Ultimate AI Orchestration" across window titles, web control plane, test runners, scripts, and documentation
 
 ### [Module 3: Autonomous Supervisor Engine (`pool/auto`) & 14-Pool Federation](file:///home/gamers/dev/tokman/docs/modules/module-3-autonomous-supervisor-capability-pools.md)
 *Status: Planned (Pending Module 2 Verification)*
@@ -168,6 +187,8 @@
 | 2026-09-06 | Console & Status Bar Polish (5 UI Refinements) | Fixed dropdown options spacing (4px uniform padding), populated raw JSON accordion with indented JSON, changed Output label & added word-wrapping (preventing horizontal side scroll), excluded selected pool from dropdown options, added live Active Pools (6/14) & Active Models (6/14) metrics to bottom status bar | **PASSED** | 100% automated tests pass in ./tests/run_tests.sh --module 1; binary recompiled cleanly in build/bin/tokman; visually verified on Tab 1 capture. |
 | 2026-09-06 | Aesthetic Spacing & Runtime Telemetry Alignment | Restored balanced theme padding (6px) and line spacing (4px) in `gui/theme.go`, expanded card margins and section spacers to 14px across all tabs to eliminate smudging; realigned telemetry metrics with genuine Module 1 runtime state: 1 Active Pool (`pool/general`) and 1 Active Model (`openai/gpt-oss-120b` via Groq) against the 14-pool / 144-model cluster targets; updated `gui/tab_endpoints.go` to badge the 13 unbuilt capability pools as `Staged (Module X)`. | **PASSED** | 100% automated tests pass (`./tests/run_tests.sh --all`); verified live status bar shows `Pools: 1/14 Active | Models: 1/144 Active`; captured in `scratch/actual_tab1_v9.png` and `actual_tab0_v7.png`. |
 | 2026-09-06 | Module 2: Stream Filter & Traffic Shaper | Pure Go SSE `<think>` filter, dynamic asymmetric context pruner, P0-P3 leaky-bucket rate limiter (12 RPM for P0), domain delay floor & jitter engine | **PASSED** | 100% unit and E2E tests pass (`./tests/run_tests.sh --module 2` and `--all`); verified live HTTP 429 burst blocking at 13th request with `Retry-After: 35` header and multi-user quota isolation; binary recompiled cleanly. |
+| 2026-09-08 | Audit Remediation & Hardening | Remediated all 25 audit findings: SEC-1 (tightened CORS to loopback/env), SEC-2 (subtle.ConstantTimeCompare auth), SEC-3 (10MB body cap), SEC-4 (masked upstream errors), SEC-5 (channel-based priority & blocked unauth override), BP-1 (stale bucket eviction), BP-2 (seeded RNG in jitter), BP-3 (shared config.LoadDotEnv), BP-4 & BL-1 (backend/types & backend/registry single source of truth), BP-5/6 (dead code removal & simplified InterceptRequest), BP-7 (neutral cache placeholder), BL-2 (dynamic note lookup), legacy Python test archiving, rebranded to "TokMan - Ultimate AI Orchestration" | **PASSED** | 100% automated tests pass across unit, mock, and e2e suites; standalone 29MB binary recompiled cleanly; zero regressions. |
+| 2026-09-08 | Root Documentation & Repository Hygiene | Authored comprehensive root README.md covering completed architecture (Modules 0-2 & Hardening), upcoming pipeline (Modules 3-8), and standalone binary execution instructions for both Desktop GUI and Headless CLI verticals; updated .gitignore with IDE rules; audited all untracked files for commit readiness | **PASSED** | Root README.md created; 100% automated test suite verified; clean git commit readiness confirmed across all production, test, and documentation files. |
 | *Pending* | Module 3: Supervisor | Go Sub-40ms Classifier, 14-Pool Federation, Critic Loop | *Queued* | Defined in `docs/modules/module-3-autonomous-supervisor-capability-pools.md`. |
 | *Pending* | Module 4: Search & UI | Embedded Wails WebUI, SearXNG Grounding, Universal Importer | *Queued* | Defined in `docs/modules/module-4-search-grounding-open-webui.md`. |
 | *Pending* | Module 5: ChatOps | Go Telegram Bastion, 0-Token Admin Menu, Safe Mode | *Queued* | Defined in `docs/modules/module-5-tri-tier-chat-bastions-chatops.md`. |

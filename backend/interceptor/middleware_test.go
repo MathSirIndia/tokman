@@ -16,7 +16,7 @@ func TestInterceptor_AllowAndHeaders(t *testing.T) {
 	req.Header.Set("X-Priority", "P0")
 	rec := httptest.NewRecorder()
 
-	_, _, allowed := ic.InterceptRequest(rec, req)
+	allowed := ic.InterceptRequest(rec, req)
 	if !allowed {
 		t.Fatalf("first request should be allowed")
 	}
@@ -44,7 +44,7 @@ func TestInterceptor_Block429(t *testing.T) {
 
 	// 13th request
 	rec429 := httptest.NewRecorder()
-	_, _, allowed := ic.InterceptRequest(rec429, req)
+	allowed := ic.InterceptRequest(rec429, req)
 	if allowed {
 		t.Fatalf("13th request should have been blocked")
 	}

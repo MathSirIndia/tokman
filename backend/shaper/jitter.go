@@ -15,6 +15,7 @@ type DomainJitterEngine struct {
 	lastDispatch map[string]time.Time
 	baseFloor    time.Duration
 	maxJitterMs  int
+	rng          *rand.Rand
 }
 
 // NewDomainJitterEngine initializes a jitter engine with default 150ms floor and 200ms jitter.
@@ -29,6 +30,7 @@ func NewDomainJitterEngine(baseFloor time.Duration, maxJitterMs int) *DomainJitt
 		lastDispatch: make(map[string]time.Time),
 		baseFloor:    baseFloor,
 		maxJitterMs:  maxJitterMs,
+		rng:          rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -54,7 +56,7 @@ func (e *DomainJitterEngine) WaitBeforeDispatch(ctx context.Context, domainOrURL
 	last := e.lastDispatch[domain]
 
 	// Compute randomized jitter for this slot
-	jitter := time.Duration(rand.Intn(e.maxJitterMs)) * time.Millisecond
+	jitter := time.Duration(e.rng.Intn(e.maxJitterMs)) * time.Millisecond
 	requiredGap := e.baseFloor + jitter
 
 	var sleepDuration time.Duration

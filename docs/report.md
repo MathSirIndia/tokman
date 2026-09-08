@@ -1281,6 +1281,12 @@ psql "$DATABASE_URL" -c "DELETE FROM \"LiteLLM_SpendLogs\" WHERE \"startTime\" <
 
 ## 19. Complete Implementation Codebase
 
+> [!NOTE]
+> **Historical Reference Implementations / Specification Pseudocode**:
+> The Python, JavaScript, and shell scripts in this section represent the initial research reference implementations from the architectural specification phase.
+> As sanctioned in Section 1 and Section 3, the **canonical production deployment target is the single native Go binary** (`tokman` in `backend/` and `gui/`). The production Go implementation replaces the multi-container Python/FastAPI/LiteLLM stack with < 50MB RAM usage, sub-millisecond in-process routing, embedded SQLite/LRU caching, and native Fyne desktop GUI.
+> All code in this section is maintained strictly for historical reference.
+
 ### A. Advanced FastAPI Interceptor & Traffic Shaper (`daemon/interceptor.py`)
 
 ```python

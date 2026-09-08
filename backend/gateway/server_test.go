@@ -199,3 +199,79 @@ func TestMaskSensitiveCredentials(t *testing.T) {
 		}
 	}
 }
+
+func TestCORSOriginRestriction(t *testing.T) {
+	srv := NewServer(Config{Port: 0})
+
+	// Localhost origin should be allowed
+	reqLocal := httptest.NewRequest(http.MethodOptions, "/v1/models", nil)
+	reqLocal.Header.Set("Origin", "http://localhost:3000")
+	wLocal := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(wLocal, reqLocal)
+	if wLocal.Header().Get("Access-Control-Allow-Origin") != "http://localhost:3000" {
+		t.Errorf("expected Access-Control-Allow-Origin for localhost, got %q", wLocal.Header().Get("Access-Control-Allow-Origin"))
+	}
+
+	// 127.0.0.1 origin should be allowed
+	reqIP := httptest.NewRequest(http.MethodOptions, "/v1/models", nil)
+	reqIP.Header.Set("Origin", "http://127.0.0.1:8080")
+	wIP := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(wIP, reqIP)
+	if wIP.Header().Get("Access-Control-Allow-Origin") != "http://127.0.0.1:8080" {
+		t.Errorf("expected Access-Control-Allow-Origin for 127.0.0.1, got %q", wIP.Header().Get("Access-Control-Allow-Origin"))
+	}
+
+	// Malicious/unknown origin should NOT receive allow-origin header (SEC-1)
+	reqEvil := httptest.NewRequest(http.MethodOptions, "/v1/models", nil)
+	reqEvil.Header.Set("Origin", "https://evil-site.com")
+	wEvil := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(wEvil, reqEvil)
+	if wEvil.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Errorf("expected empty Access-Control-Allow-Origin for evil-site.com, got %q", wEvil.Header().Get("Access-Control-Allow-Origin"))
+	}
+}
+
+func TestRequestBodySizeLimit(t *testing.T) {
+	srv := NewServer(Config{Port: 0})
+
+	// Create a payload larger than 10MB
+	oversizedBody := make([]byte, 11*1024*1024)
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(oversizedBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected 413 StatusRequestEntityTooLarge for >10MB body, got %d", w.Code)
+	}
+}
+
+func TestUpstreamErrorSanitization(t *testing.T) {
+	// Point upstream URL to a non-existent port to simulate upstream outage
+	srv := NewServer(Config{
+		Port:        0,
+		UpstreamURL: "http://127.0.0.1:59999/v1/chat/completions",
+	})
+
+	chatReq := ChatCompletionRequest{
+		Model: "pool/general",
+		Messages: []ChatMessage{
+			{Role: "user", Content: "hello"},
+		},
+	}
+	body, _ := json.Marshal(chatReq)
+	req := httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadGateway {
+		t.Fatalf("expected 502 Bad Gateway, got %d", w.Code)
+	}
+	// Verify raw network/DNS errors are NOT leaked to client (SEC-4)
+	var resp map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	if resp["error"] != "Upstream service error" || resp["code"] != "upstream_unavailable" {
+		t.Errorf("expected sanitized error response, got %v", resp)
+	}
+}

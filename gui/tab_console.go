@@ -12,12 +12,13 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+
+	"tokman/backend/registry"
+	"tokman/backend/types"
 )
 
-type ChatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
+// ChatMessage represents a single turn in a chat conversation (aliased to types.ChatMessage, BP-4)
+type ChatMessage = types.ChatMessage
 
 type ChatRequest struct {
 	Model       string        `json:"model"`
@@ -43,22 +44,8 @@ type ChatResponse struct {
 	} `json:"usage"`
 }
 
-var allPoolOptions = []string{
-	"pool/auto",
-	"pool/general",
-	"pool/deep-reasoning",
-	"pool/agent-coding",
-	"pool/document-analysis",
-	"pool/web-research",
-	"pool/presentation",
-	"pool/image-gen",
-	"pool/architect",
-	"pool/security-tester",
-	"pool/stack-optimizer",
-	"pool/document-gen",
-	"pool/audio-gen",
-	"pool/video-conductor",
-}
+// allPoolOptions derives from the central registry (BL-1)
+var allPoolOptions = registry.CanonicalPoolNames()
 
 func getPoolOptionsExcluding(selected string) []string {
 	opts := make([]string, 0, len(allPoolOptions)-1)
@@ -70,39 +57,9 @@ func getPoolOptionsExcluding(selected string) []string {
 	return opts
 }
 
+// getTargetModelNoteText resolves pool descriptions via centralized registry (BL-2)
 func getTargetModelNoteText(s string) string {
-	switch s {
-	case "pool/auto":
-		return "Target: Two-Tier Hierarchical Intent Arbitrator (<40ms DAG)"
-	case "pool/general":
-		return "Target: groq/llama-3.3-70b on Groq LPU (Tier 1 Flagship)"
-	case "pool/deep-reasoning":
-		return "Target: sambanova/deepseek-r1 (Chain-of-Thought R1)"
-	case "pool/agent-coding":
-		return "Target: sambanova/qwen-2.5-coder (Autonomous Dev)"
-	case "pool/document-analysis":
-		return "Target: gemini/gemini-2.0-flash (1M Token Context Window)"
-	case "pool/web-research":
-		return "Target: cerebras/llama-3.3-70b with SearXNG Grounding"
-	case "pool/presentation":
-		return "Target: groq/llama-3.3-70b (Headless Marp / Reveal.js)"
-	case "pool/image-gen":
-		return "Target: cf/flux-1-schnell (Cloudflare Diffusion Engine)"
-	case "pool/architect":
-		return "Target: gemini/gemini-2.0-flash (Scene Graph Planner)"
-	case "pool/security-tester":
-		return "Target: sambanova/qwen-coder (AST Static Analysis)"
-	case "pool/stack-optimizer":
-		return "Target: gemini/gemini-2.0-flash (Token Burn Aggregator)"
-	case "pool/document-gen":
-		return "Target: gemini/gemini-2.0-flash (Typst Rust Compiler)"
-	case "pool/audio-gen":
-		return "Target: cf/openai-whisper (Kokoro-82M TTS / Whisper)"
-	case "pool/video-conductor":
-		return "Target: Deterministic FFmpeg Ken Burns Transform Runner"
-	default:
-		return "Target: " + s
-	}
+	return registry.GetTargetModelNote(s)
 }
 
 func (a *AppUI) updateConsolePool(selected string) {
@@ -277,6 +234,8 @@ func (a *AppUI) buildConsoleTab() fyne.CanvasObject {
 					sendBtn.Enable()
 					if resp.StatusCode == 200 {
 						statusPill.SetText(fmt.Sprintf("🟢 200 OK (%s)", cacheTag))
+						savedUSD := float64(totalTok) * 0.000002
+						costPill.SetText(fmt.Sprintf("💲 $0.0000 Free (Saved $%.4f)", savedUSD))
 					} else {
 						statusPill.SetText(fmt.Sprintf("⚠️ %d (%s)", resp.StatusCode, cacheTag))
 					}

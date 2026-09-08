@@ -2,13 +2,12 @@ package filter
 
 import (
 	"unicode/utf8"
+
+	"tokman/backend/types"
 )
 
-// ChatMessage represents a single turn in a conversation.
-type ChatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
+// ChatMessage represents a single turn in a conversation (aliased to types.ChatMessage).
+type ChatMessage = types.ChatMessage
 
 // EstimateTokens calculates an approximate token count for a string using the standard 4-char heuristic + envelope overhead.
 func EstimateTokens(text string) int {

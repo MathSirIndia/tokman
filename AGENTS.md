@@ -1,6 +1,6 @@
-# Antigravity Agent Guidelines: Distributed AI Gateway Mesh
+# Antigravity Agent Guidelines: TokMan - Ultimate AI Orchestration
 
-These rules govern the development workflow, testing standards, and tracking protocols for the **Distributed AI Gateway Mesh** (`tokman`) repository.
+These rules govern the development workflow, testing standards, and tracking protocols for the **TokMan - Ultimate AI Orchestration** (`tokman`) repository.
 
 ---
 

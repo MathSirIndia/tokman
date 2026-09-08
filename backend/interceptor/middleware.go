@@ -1,10 +1,8 @@
 package interceptor
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"tokman/backend/filter"
@@ -34,9 +32,9 @@ func NewInterceptor(limiter *shaper.LeakyBucketLimiter, jitter *shaper.DomainJit
 }
 
 // InterceptRequest processes an incoming request: resolves identity, checks rate limits,
-// and prunes the context if necessary.
-// Returns a boolean indicating if the request is permitted, and an optional error response.
-func (ic *Interceptor) InterceptRequest(w http.ResponseWriter, r *http.Request) (*filter.ChatMessage, []filter.ChatMessage, bool) {
+// and sets standard rate limit headers.
+// Returns a boolean indicating if the request is permitted (true) or blocked (false).
+func (ic *Interceptor) InterceptRequest(w http.ResponseWriter, r *http.Request) bool {
 	identity, priority := shaper.ResolveIdentity(r)
 	rateRes := ic.Limiter.Allow(identity, priority)
 
@@ -56,10 +54,10 @@ func (ic *Interceptor) InterceptRequest(w http.ResponseWriter, r *http.Request) 
   }
 }`, rateRes.Priority, rateRes.LimitRPM, rateRes.RetryAfter)
 		w.Write([]byte(errResp))
-		return nil, nil, false
+		return false
 	}
 
-	return nil, nil, true
+	return true
 }
 
 // PruneRequestBody parses the request body, executes dynamic context pruning on messages,
@@ -96,11 +94,4 @@ func (ic *Interceptor) PruneRequestBody(bodyBytes []byte, maxTokens int) ([]byte
 	}
 
 	return bodyBytes, 0, nil
-}
-
-// ReplaceRequestBody resets r.Body with a new byte buffer.
-func ReplaceRequestBody(r *http.Request, body []byte) {
-	r.Body = io.NopCloser(bytes.NewReader(body))
-	r.ContentLength = int64(len(body))
-	r.Header.Set("Content-Length", strconv.Itoa(len(body)))
 }

@@ -1,8 +1,8 @@
-# Windows PowerShell Build Script for TokMan Gateway Mesh
+# Windows PowerShell Build Script for TokMan - Ultimate AI Orchestration
 $ErrorActionPreference = "Stop"
 
 Write-Host "================================================================="
-Write-Host "   TOKMAN AI GATEWAY MESH: PRODUCTION NATIVE BINARY COMPILER     "
+Write-Host "   TOKMAN - ULTIMATE AI ORCHESTRATION: PRODUCTION BINARY BUILD   "
 Write-Host "================================================================="
 
 $rootDir = Split-Path -Parent $PSScriptRoot
